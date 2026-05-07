@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Citra Perdana</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 style="display: flex; align-items: center;"><img src="assets/images/Logo Citra Perdana.png" 
+                    alt="Logo" style="max-height: 30px; margin-right: 10px;">Citra Perdana</h2>
+            </div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="index.html" class="active">
+                        <i class="fas fa-home"></i> <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="menu-label">Data Master</li>
+                <li>
+                    <a href="views/barang/data_barang.html">
+                        <i class="fas fa-box"></i> <span>Kelola Data Barang</span>
+                    </a>
+                </li>
+                <li class="menu-label">Transaksi</li>
+                <li>
+                    <a href="views/transaksi/barang_masuk.html">
+                        <i class="fas fa-arrow-down" style="color: #10b981;"></i> <span>Barang Masuk</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="views/transaksi/barang_keluar.html">
+                        <i class="fas fa-arrow-up" style="color: #ef4444;"></i> <span>Barang Keluar</span>
+                    </a>
+                </li>
+                <li class="menu-label">Laporan</li>
+                <li>
+                    <a href="views/laporan/laporan_stok.html">
+                        <i class="fas fa-file-alt"></i> <span>Laporan Stok</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <div class="main-content">
+            <header class="topbar">
+                <div class="toggle-btn" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+                <div class="user-profile">
+                    <span>Admin Gudang</span>
+                    <div class="avatar"><i class="fas fa-user"></i></div>
+                </div>
+            </header>
+            
+            <main class="content-area">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <p>Selamat datang di Sistem Inventaris Citra Perdana</p>
+                </div>
+
+                <div class="dashboard-cards">
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-box"></i></div>
+                        <div class="card-info">
+                            <h3>150</h3>
+                            <p>Total Barang</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon" style="background: #d1fae5; color: #10b981;"><i class="fas fa-arrow-down"></i></div>
+                        <div class="card-info">
+                            <h3>24</h3>
+                            <p>Barang Masuk</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon" style="background: #fee2e2; color: #ef4444;"><i class="fas fa-arrow-up"></i></div>
+                        <div class="card-info">
+                            <h3>12</h3>
+                            <p>Barang Keluar</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon" style="background: #fef3c7; color: #f59e0b;"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="card-info">
+                            <h3>3</h3>
+                            <p>Stok Menipis</p>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script src="assets/js/script.js"></script>
+</body>
+</html>
