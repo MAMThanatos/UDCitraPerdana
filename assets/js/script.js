@@ -72,13 +72,49 @@ document.addEventListener('DOMContentLoaded', function () {
             tableBody.appendChild(row);
         });
     }
+
+    // Render Dummy Data untuk Halaman Barang Masuk
+    const masukTableBody = document.getElementById('barangMasukTableBody');
+    if (masukTableBody) {
+        const dummyMasuk = [
+            { tanggal: '2026-05-10', ref: 'INV-202605-01', supplier: 'PT. Bangun Jaya', barang: 'Semen Gresik 50kg', qty: 50 },
+            { tanggal: '2026-05-09', ref: 'INV-202605-02', supplier: 'Toko Besi Maju', barang: 'Besi Beton 10mm', qty: 100 },
+            { tanggal: '2026-05-08', ref: 'INV-202605-03', supplier: 'CV. Warna Abadi', barang: 'Cat Tembok Dulux', qty: 15 },
+        ];
+
+        dummyMasuk.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.tanggal}</td>
+                <td style="font-weight: 500;">${item.ref}</td>
+                <td>${item.supplier}</td>
+                <td>${item.barang}</td>
+                <td><span class="badge badge-info" style="background-color: #d1fae5; color: #059669;">+ ${item.qty}</span></td>
+                <td>
+                    <button class="btn-icon btn-edit" title="Detail"><i class="fas fa-eye"></i></button>
+                    <button class="btn-icon btn-delete" title="Hapus Data"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            masukTableBody.appendChild(row);
+        });
+    }
 });
 
 // Modal Global Functions
 window.openModal = function(action, id = null) {
-    const modal = document.getElementById('barangModal');
-    const modalTitle = document.getElementById('modalTitle');
-    const form = document.getElementById('formBarang');
+    let modalId = 'barangModal';
+    let titleId = 'modalTitle';
+    let formId = 'formBarang';
+
+    if (action === 'addMasuk') {
+        modalId = 'transaksiModal';
+        titleId = 'modalTitle';
+        formId = 'formTransaksi';
+    }
+
+    const modal = document.getElementById(modalId);
+    const modalTitle = document.getElementById(titleId);
+    const form = document.getElementById(formId);
     
     if (modal) {
         modal.style.display = 'flex';
@@ -88,6 +124,11 @@ window.openModal = function(action, id = null) {
         } else if (action === 'edit') {
             modalTitle.innerText = 'Edit Data Barang - ' + id;
             // Simulasi pengisian form jika edit
+        } else if (action === 'addMasuk') {
+            modalTitle.innerText = 'Tambah Barang Masuk';
+            if (form) form.reset();
+            const dateInput = document.getElementById('tanggalTransaksi');
+            if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
         }
     }
 };
@@ -99,10 +140,22 @@ window.closeModal = function() {
     }
 };
 
+window.closeModalTransaksi = function() {
+    const modal = document.getElementById('transaksiModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+};
+
 // Tutup modal jika user mengklik area di luar modal
 window.onclick = function(event) {
-    const modal = document.getElementById('barangModal');
-    if (event.target == modal) {
-        modal.style.display = "none";
+    const barangModal = document.getElementById('barangModal');
+    const transaksiModal = document.getElementById('transaksiModal');
+    
+    if (event.target == barangModal) {
+        barangModal.style.display = "none";
+    }
+    if (event.target == transaksiModal) {
+        transaksiModal.style.display = "none";
     }
 };
