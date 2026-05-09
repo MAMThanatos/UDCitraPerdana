@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Barang - Citra Perdana</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 style="display: flex; align-items: center;"><img src="../../assets/images/Logo Citra Perdana.png" 
+                    alt="Logo" style="max-height: 30px; margin-right: 10px;">Citra Perdana</h2>
+            </div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="../../index.html">
+                        <i class="fas fa-home"></i> <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="menu-label">Data Master</li>
+                <li>
+                    <a href="data_barang.html" class="active">
+                        <i class="fas fa-box"></i> <span>Kelola Data Barang</span>
+                    </a>
+                </li>
+                <li class="menu-label">Transaksi</li>
+                <li>
+                    <a href="../transaksi/barang_masuk.html">
+                        <i class="fas fa-arrow-down" style="color: #10b981;"></i> <span>Barang Masuk</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="../transaksi/barang_keluar.html">
+                        <i class="fas fa-arrow-up" style="color: #ef4444;"></i> <span>Barang Keluar</span>
+                    </a>
+                </li>
+                <li class="menu-label">Laporan</li>
+                <li>
+                    <a href="../laporan/laporan_stok.html">
+                        <i class="fas fa-file-alt"></i> <span>Laporan Stok</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <div class="main-content">
+            <header class="topbar">
+                <div class="toggle-btn" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+                <div class="user-profile">
+                    <span>Admin Gudang</span>
+                    <div class="avatar"><i class="fas fa-user"></i></div>
+                </div>
+            </header>
+            
+            <main class="content-area">
+                <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>Kelola Data Barang</h1>
+                        <p>Manajemen inventaris barang gudang</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openModal('add')">
+                        <i class="fas fa-plus" style="margin-right: 6px;"></i> Tambah Barang
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-header-actions">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Cari barang berdasarkan nama atau kode...">
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Kode</th>
+                                <th>Nama Barang</th>
+                                <th>Kategori</th>
+                                <th>Stok</th>
+                                <th>Harga/Satuan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="barangTableBody">
+                            <!-- Data dirender melalui script.js -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal Form -->
+    <div id="barangModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Tambah Data Barang</h3>
+                <span class="close-btn" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="formBarang">
+                    <div class="input-group">
+                        <label>Kode Barang</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="kodeBarang" placeholder="Contoh: BRG-001" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Nama Barang</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="namaBarang" placeholder="Masukkan nama barang" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="input-group">
+                            <label>Kategori</label>
+                            <div class="input-wrapper">
+                                <select id="kategoriBarang" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 14px; outline: none; color: var(--text-main); background-color: var(--surface);" required>
+                                    <option value="">Pilih Kategori</option>
+                                    <option value="Material Dasar">Material Dasar</option>
+                                    <option value="Aksesoris">Aksesoris</option>
+                                    <option value="Finishing">Finishing</option>
+                                    <option value="Plumbing">Plumbing</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Stok Awal</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="stokBarang" placeholder="0" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Harga per Satuan</label>
+                        <div class="input-wrapper">
+                            <i class="icon-left" style="font-style: normal; font-weight: 600;">Rp</i>
+                            <input type="number" id="hargaBarang" placeholder="0" min="0" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+                <button class="btn btn-primary" onclick="saveBarang()"><i class="fas fa-save" style="margin-right: 5px;"></i> Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../assets/js/script.js"></script>
+    <script>
+        function saveBarang() {
+            // Simulasi proses simpan
+            const btn = document.querySelector('.modal-footer .btn-primary');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Menyimpan...';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                alert('Data barang berhasil disimpan! (Ini hanya simulasi UI)');
+                closeModal();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 800);
+        }
+    </script>
+</body>
+</html>
