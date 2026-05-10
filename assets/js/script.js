@@ -98,6 +98,57 @@ document.addEventListener('DOMContentLoaded', function () {
             masukTableBody.appendChild(row);
         });
     }
+    // Render Dummy Data untuk Halaman Barang Keluar
+    const keluarTableBody = document.getElementById('barangKeluarTableBody');
+    if (keluarTableBody) {
+        const dummyKeluar = [
+            { tanggal: '2026-05-11', ref: 'OUT-202605-01', tujuan: 'Proyek Perumahan A', barang: 'Semen Gresik 50kg', qty: 20 },
+            { tanggal: '2026-05-10', ref: 'OUT-202605-02', tujuan: 'Proyek Renovasi B', barang: 'Cat Tembok Dulux', qty: 5 },
+            { tanggal: '2026-05-09', ref: 'OUT-202605-03', tujuan: 'Mandor C (Eceran)', barang: 'Paku Payung 5cm', qty: 100 },
+        ];
+
+        dummyKeluar.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.tanggal}</td>
+                <td style="font-weight: 500;">${item.ref}</td>
+                <td>${item.tujuan}</td>
+                <td>${item.barang}</td>
+                <td><span class="badge badge-info" style="background-color: #fee2e2; color: #e11d48;">- ${item.qty}</span></td>
+                <td>
+                    <button class="btn-icon btn-edit" title="Detail"><i class="fas fa-eye"></i></button>
+                    <button class="btn-icon btn-delete" title="Hapus Data"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            keluarTableBody.appendChild(row);
+        });
+    }
+
+    // Render Dummy Data untuk Halaman Laporan Stok
+    const laporanStokTableBody = document.getElementById('laporanStokTableBody');
+    if (laporanStokTableBody) {
+        const dummyLaporan = [
+            { id: 'BRG-001', nama: 'Semen Gresik 50kg', kategori: 'Material Dasar', awal: 120, masuk: 50, keluar: 20, akhir: 150 },
+            { id: 'BRG-002', nama: 'Paku Payung 5cm', kategori: 'Aksesoris', awal: 600, masuk: 0, keluar: 100, akhir: 500 },
+            { id: 'BRG-003', nama: 'Cat Tembok Dulux', kategori: 'Finishing', awal: 20, masuk: 15, keluar: 5, akhir: 30 },
+            { id: 'BRG-004', nama: 'Besi Beton 10mm', kategori: 'Material Dasar', awal: 100, masuk: 100, keluar: 0, akhir: 200 },
+            { id: 'BRG-005', nama: 'Pipa PVC 3/4 inch', kategori: 'Plumbing', awal: 120, masuk: 0, keluar: 0, akhir: 120 },
+        ];
+
+        dummyLaporan.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.id}</td>
+                <td style="font-weight: 500;">${item.nama}</td>
+                <td><span class="badge badge-info">${item.kategori}</span></td>
+                <td style="text-align: center;">${item.awal}</td>
+                <td style="text-align: center; color: #059669; font-weight: 600;">+ ${item.masuk}</td>
+                <td style="text-align: center; color: #e11d48; font-weight: 600;">- ${item.keluar}</td>
+                <td style="text-align: center; font-weight: bold; background-color: #f8fafc;">${item.akhir}</td>
+            `;
+            laporanStokTableBody.appendChild(row);
+        });
+    }
 });
 
 // Modal Global Functions
@@ -107,6 +158,10 @@ window.openModal = function(action, id = null) {
     let formId = 'formBarang';
 
     if (action === 'addMasuk') {
+        modalId = 'transaksiModal';
+        titleId = 'modalTitle';
+        formId = 'formTransaksi';
+    } else if (action === 'addKeluar') {
         modalId = 'transaksiModal';
         titleId = 'modalTitle';
         formId = 'formTransaksi';
@@ -126,6 +181,11 @@ window.openModal = function(action, id = null) {
             // Simulasi pengisian form jika edit
         } else if (action === 'addMasuk') {
             modalTitle.innerText = 'Tambah Barang Masuk';
+            if (form) form.reset();
+            const dateInput = document.getElementById('tanggalTransaksi');
+            if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+        } else if (action === 'addKeluar') {
+            modalTitle.innerText = 'Tambah Barang Keluar';
             if (form) form.reset();
             const dateInput = document.getElementById('tanggalTransaksi');
             if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
