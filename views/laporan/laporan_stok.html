@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Stok - Citra Perdana</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <style>
+        @media print {
+            .sidebar, .topbar, .btn, .search-box {
+                display: none !important;
+            }
+            .main-content {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+            body {
+                background-color: #fff !important;
+            }
+            .app-container {
+                background-color: #fff !important;
+            }
+            .table-container {
+                box-shadow: none !important;
+                border: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 style="display: flex; align-items: center;"><img src="../../assets/images/Logo Citra Perdana.png" 
+                    alt="Logo" style="max-height: 30px; margin-right: 10px;">Citra Perdana</h2>
+            </div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="../../index.html">
+                        <i class="fas fa-home"></i> <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="menu-label">Data Master</li>
+                <li>
+                    <a href="../barang/data_barang.html">
+                        <i class="fas fa-box"></i> <span>Kelola Data Barang</span>
+                    </a>
+                </li>
+                <li class="menu-label">Transaksi</li>
+                <li>
+                    <a href="../transaksi/barang_masuk.html">
+                        <i class="fas fa-arrow-down" style="color: #10b981;"></i> <span>Barang Masuk</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="../transaksi/barang_keluar.html">
+                        <i class="fas fa-arrow-up" style="color: #ef4444;"></i> <span>Barang Keluar</span>
+                    </a>
+                </li>
+                <li class="menu-label">Laporan</li>
+                <li>
+                    <a href="laporan_stok.html" class="active">
+                        <i class="fas fa-file-alt"></i> <span>Laporan Stok</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <div class="main-content">
+            <header class="topbar">
+                <div class="toggle-btn" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+                <div class="user-profile">
+                    <span>Admin Gudang</span>
+                    <div class="avatar"><i class="fas fa-user"></i></div>
+                </div>
+            </header>
+            
+            <main class="content-area">
+                <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>Laporan Stok Barang</h1>
+                        <p>Ringkasan pergerakan stok barang di gudang</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary" style="margin-right: 10px;">
+                            <i class="fas fa-file-excel" style="margin-right: 6px; color: #10b981;"></i> Export Excel
+                        </button>
+                        <button class="btn btn-primary" onclick="window.print()">
+                            <i class="fas fa-print" style="margin-right: 6px;"></i> Cetak Laporan
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-header-actions">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Cari data stok...">
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <select style="padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: 'Inter', sans-serif;">
+                                <option value="">Semua Kategori</option>
+                                <option value="Material Dasar">Material Dasar</option>
+                                <option value="Aksesoris">Aksesoris</option>
+                            </select>
+                            <input type="month" style="padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: 'Inter', sans-serif;" value="2026-05">
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Kode</th>
+                                <th>Nama Barang</th>
+                                <th>Kategori</th>
+                                <th style="text-align: center;">Stok Awal</th>
+                                <th style="text-align: center;">Masuk</th>
+                                <th style="text-align: center;">Keluar</th>
+                                <th style="text-align: center;">Stok Akhir</th>
+                            </tr>
+                        </thead>
+                        <tbody id="laporanStokTableBody">
+                            <!-- Data dirender melalui script.js -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script src="../../assets/js/script.js"></script>
+</body>
+</html>
