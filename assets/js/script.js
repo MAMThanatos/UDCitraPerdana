@@ -14,20 +14,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Login Form Submit Logic
+    // Login Form Submit Logic - Show loading state
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-
             const btn = this.querySelector('button');
             btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Memproses...';
             btn.style.opacity = '0.8';
             btn.disabled = true;
-
-            setTimeout(() => {
-                window.location.href = '../../index.html';
-            }, 1000);
         });
     }
 
