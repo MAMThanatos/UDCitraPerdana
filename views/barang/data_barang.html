@@ -7,6 +7,90 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../../assets/css/style.css">
+    <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .user-dropdown {
+            position: relative;
+        }
+        .user-menu-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: background 0.2s;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1e293b;
+        }
+        .user-menu-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 250px;
+            margin-top: 8px;
+            display: none;
+            z-index: 1000;
+        }
+        .dropdown-menu.active {
+            display: block;
+        }
+        .dropdown-header {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .dropdown-user-name {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+        .dropdown-user-role {
+            font-size: 12px;
+            color: #64748B;
+        }
+        .dropdown-menu a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: #1e293b;
+            text-decoration: none;
+            border: none;
+            background: none;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .dropdown-menu a:hover {
+            background: #f4f6f8;
+        }
+        .dropdown-menu a.logout-menu {
+            color: #ef4444;
+            border-top: 1px solid #e2e8f0;
+        }
+        .dropdown-menu a.logout-menu:hover {
+            background: #fee2e2;
+        }
+    </style>
 </head>
 <body>
 
@@ -19,7 +103,7 @@
             </div>
             <ul class="sidebar-menu">
                 <li>
-                    <a href="../../index.html">
+                    <a href="../../index.php">
                         <i class="fas fa-home"></i> <span>Dashboard</span>
                     </a>
                 </li>
@@ -46,6 +130,11 @@
                         <i class="fas fa-file-alt"></i> <span>Laporan Stok</span>
                     </a>
                 </li>
+                <li style="margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                    <a href="../../logout.php" style="color: #ef4444;">
+                        <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+                    </a>
+                </li>
             </ul>
         </aside>
 
@@ -54,9 +143,22 @@
                 <div class="toggle-btn" id="sidebarToggle">
                     <i class="fas fa-bars"></i>
                 </div>
-                <div class="user-profile">
-                    <span>Admin Gudang</span>
-                    <div class="avatar"><i class="fas fa-user"></i></div>
+                <div class="user-dropdown" style="margin-left: auto;">
+                    <button class="user-menu-btn" id="userMenuBtn">
+                        <span>Admin Gudang</span>
+                        <div class="avatar" style="width: 40px; height: 40px; border-radius: 50%; background-color: #e2e8f0; display: flex; align-items: center; justify-content: center; color: #64748B; margin: 0;">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    </button>
+                    <div class="dropdown-menu" id="userDropdown">
+                        <div class="dropdown-header">
+                            <div class="dropdown-user-name">Admin Gudang</div>
+                            <div class="dropdown-user-role">@admin</div>
+                        </div>
+                        <a href="../../logout.php" class="logout-menu">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
                 </div>
             </header>
             

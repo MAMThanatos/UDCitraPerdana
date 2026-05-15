@@ -143,6 +143,24 @@ document.addEventListener('DOMContentLoaded', function () {
             laporanStokTableBody.appendChild(row);
         });
     }
+
+    // User Profile Dropdown
+    const userProfileBtn = document.getElementById('userProfileBtn');
+    const userDropdownMenu = document.getElementById('userDropdownMenu');
+
+    if (userProfileBtn && userDropdownMenu) {
+        userProfileBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            userDropdownMenu.classList.toggle('active');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!userDropdownMenu.contains(e.target) && e.target !== userProfileBtn && !userProfileBtn.contains(e.target)) {
+                userDropdownMenu.classList.remove('active');
+            }
+        });
+    }
 });
 
 // Modal Global Functions
