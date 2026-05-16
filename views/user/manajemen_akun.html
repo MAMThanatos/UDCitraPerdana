@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barang Masuk - Citra Perdana</title>
+    <title>Manajemen Akun - Citra Perdana</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../../assets/css/style.css">
@@ -11,11 +11,13 @@
 <body>
 
     <div class="app-container">
-        
+        <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h2 style="display: flex; align-items: center;"><img src="../../assets/images/Logo Citra Perdana.png" 
-                    alt="Logo" style="max-height: 30px; margin-right: 10px;">Citra Perdana</h2>
+                <h2 style="display: flex; align-items: center;">
+                    <img src="../../assets/images/Logo Citra Perdana.png" alt="Logo" style="max-height: 30px; margin-right: 10px;">
+                    Citra Perdana
+                </h2>
             </div>
             <ul class="sidebar-menu">
                 <li>
@@ -31,12 +33,12 @@
                 </li>
                 <li class="menu-label">Transaksi</li>
                 <li>
-                    <a href="barang_masuk.html" class="active">
+                    <a href="../transaksi/barang_masuk.html">
                         <i class="fas fa-arrow-down" style="color: #10b981;"></i> <span>Barang Masuk</span>
                     </a>
                 </li>
                 <li>
-                    <a href="barang_keluar.html">
+                    <a href="../transaksi/barang_keluar.html">
                         <i class="fas fa-arrow-up" style="color: #ef4444;"></i> <span>Barang Keluar</span>
                     </a>
                 </li>
@@ -48,29 +50,31 @@
                 </li>
                 <li class="menu-label">Pengaturan</li>
                 <li>
-                    <a href="../user/manajemen_akun.html">
+                    <a href="manajemen_akun.html" class="active">
                         <i class="fas fa-users-cog"></i> <span>Manajemen Akun</span>
                     </a>
                 </li>
             </ul>
         </aside>
 
+        <!-- Main Content -->
         <div class="main-content">
+            <!-- Topbar -->
             <header class="topbar">
                 <div class="toggle-btn" id="sidebarToggle">
                     <i class="fas fa-bars"></i>
                 </div>
                 <div class="user-profile-dropdown">
                     <button class="user-profile-btn" id="userProfileBtn">
-                        <span>Admin Gudang</span>
+                        <span>Administrator</span>
                         <div class="avatar"><i class="fas fa-user"></i></div>
                     </button>
                     <div class="user-dropdown-menu" id="userDropdownMenu">
                         <div class="dropdown-user-info">
                             <div class="dropdown-user-avatar"><i class="fas fa-user"></i></div>
                             <div>
-                                <div class="dropdown-user-name">Admin Gudang</div>
-                                <div class="dropdown-user-role">Administrator</div>
+                                <div class="dropdown-user-name">Administrator</div>
+                                <div class="dropdown-user-role">Super Admin</div>
                             </div>
                         </div>
                         <div class="dropdown-divider"></div>
@@ -87,15 +91,16 @@
                     </div>
                 </div>
             </header>
-            
+
+            <!-- Content Area -->
             <main class="content-area">
                 <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <h1>Barang Masuk</h1>
-                        <p>Catat transaksi penerimaan barang dari supplier</p>
+                        <h1>Manajemen Akun</h1>
+                        <p>Kelola hak akses dan pengguna sistem inventaris</p>
                     </div>
-                    <button class="btn btn-primary" onclick="openModal('addMasuk')">
-                        <i class="fas fa-plus" style="margin-right: 6px;"></i> Tambah Transaksi
+                    <button class="btn btn-primary" onclick="openModal('tambahAkun')">
+                        <i class="fas fa-plus" style="margin-right: 6px;"></i> Tambah Pengguna
                     </button>
                 </div>
 
@@ -103,110 +108,131 @@
                     <div class="table-header-actions">
                         <div class="search-box">
                             <i class="fas fa-search"></i>
-                            <input type="text" placeholder="Cari transaksi atau supplier...">
-                        </div>
-                        <div>
-                            <input type="date" style="padding: 10px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: inherit; font-size: 14px; outline: none; color: var(--text-main);">
+                            <input type="text" placeholder="Cari nama atau username...">
                         </div>
                     </div>
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Tanggal</th>
-                                <th>No. Referensi</th>
-                                <th>Supplier</th>
-                                <th>Barang</th>
-                                <th>Jumlah</th>
+                                <th>ID</th>
+                                <th>Nama Lengkap</th>
+                                <th>Username</th>
+                                <th>Peran (Role)</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
-                        <tbody id="barangMasukTableBody">
-                            <!-- Data dirender melalui script.js -->
+                        <tbody id="manajemenAkunTableBody">
+                            <!-- Data akan dimuat dari JS -->
                         </tbody>
                     </table>
                 </div>
-
             </main>
         </div>
     </div>
 
-    <!-- Modal Form Barang Masuk -->
-    <div id="transaksiModal" class="modal">
+    <!-- Modal Form (Tambah/Edit Akun) -->
+    <div id="akunModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modalTitle">Tambah Barang Masuk</h3>
-                <span class="close-btn" onclick="closeModalTransaksi()">&times;</span>
+                <h3 id="modalTitle">Tambah Pengguna Baru</h3>
+                <span class="close-btn" onclick="closeModal()">&times;</span>
             </div>
             <div class="modal-body">
-                <form id="formTransaksi">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div class="input-group">
-                            <label>Tanggal Transaksi</label>
-                            <div class="input-wrapper">
-                                <input type="date" id="tanggalTransaksi" required>
-                            </div>
-                        </div>
-                        <div class="input-group">
-                            <label>No. Referensi / Surat Jalan</label>
-                            <div class="input-wrapper">
-                                <input type="text" id="noReferensi" placeholder="Contoh: INV-001" required>
-                            </div>
+                <form id="akunForm">
+                    <div class="input-group">
+                        <label for="nama_lengkap">Nama Lengkap</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="nama_lengkap" name="nama_lengkap" placeholder="Masukkan nama lengkap" required style="padding-left: 12px;">
                         </div>
                     </div>
                     <div class="input-group">
-                        <label>Supplier / Vendor</label>
+                        <label for="username">Username</label>
                         <div class="input-wrapper">
-                            <input type="text" id="supplier" placeholder="Nama Supplier" required>
+                            <input type="text" id="username" name="username" placeholder="Buat username" required style="padding-left: 12px;">
                         </div>
                     </div>
                     <div class="input-group">
-                        <label>Pilih Barang</label>
-                        <div class="input-wrapper">
-                            <select id="pilihBarang" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 14px; outline: none; color: var(--text-main); background-color: var(--surface);" required>
-                                <option value="">-- Pilih Barang --</option>
-                                <option value="BRG-001">BRG-001 - Semen Gresik 50kg</option>
-                                <option value="BRG-002">BRG-002 - Paku Payung 5cm</option>
-                                <option value="BRG-003">BRG-003 - Cat Tembok Dulux</option>
-                                <option value="BRG-004">BRG-004 - Besi Beton 10mm</option>
-                                <option value="BRG-005">BRG-005 - Pipa PVC 3/4 inch</option>
-                            </select>
-                        </div>
+                        <label for="role">Hak Akses (Role)</label>
+                        <select id="role" name="role" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 14px; font-family: 'Inter', sans-serif;">
+                            <option value="Admin">Admin</option>
+                            <option value="Manajer">Manajer</option>
+                            <option value="Staff Gudang">Staff Gudang</option>
+                        </select>
                     </div>
                     <div class="input-group">
-                        <label>Jumlah Masuk</label>
+                        <label for="password">Password</label>
                         <div class="input-wrapper">
-                            <input type="number" id="jumlahMasuk" placeholder="0" min="1" required>
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <label>Keterangan (Opsional)</label>
-                        <div class="input-wrapper">
-                            <input type="text" id="keterangan" placeholder="Catatan tambahan...">
+                            <input type="password" id="password" name="password" placeholder="Masukkan password" required style="padding-left: 12px;">
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModalTransaksi()">Batal</button>
-                <button class="btn btn-primary" onclick="saveTransaksi()"><i class="fas fa-save" style="margin-right: 5px;"></i> Simpan Transaksi</button>
+                <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+                <button class="btn btn-primary" onclick="simpanAkun(this)">Simpan Pengguna</button>
             </div>
         </div>
     </div>
 
     <script src="../../assets/js/script.js"></script>
     <script>
-        function saveTransaksi() {
-            const btn = document.querySelector('.modal-footer .btn-primary');
+        // Modal Logic Khusus Halaman Manajemen Akun
+        const modal = document.getElementById('akunModal');
+        
+        function openModal(mode, id = '') {
+            modal.style.display = 'flex';
+            const title = document.getElementById('modalTitle');
+            if(mode === 'edit') {
+                title.textContent = 'Edit Pengguna';
+                document.getElementById('password').required = false;
+                document.getElementById('password').placeholder = "Kosongkan jika tidak ingin mengubah sandi";
+            } else {
+                title.textContent = 'Tambah Pengguna Baru';
+                document.getElementById('akunForm').reset();
+                document.getElementById('password').required = true;
+                document.getElementById('password').placeholder = "Masukkan password";
+            }
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        function simpanAkun(btn) {
+            const form = document.getElementById('akunForm');
+            if(!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Menyimpan...';
             btn.disabled = true;
             
-            setTimeout(() => {
-                alert('Transaksi Barang Masuk berhasil disimpan! Stok barang otomatis bertambah. (Simulasi)');
-                closeModalTransaksi();
+            // Call API Register (Dummy mode)
+            const formData = new FormData(form);
+            fetch('../../api/auth/register.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    showToast('Pengguna berhasil ditambahkan!', 'success');
+                    closeModal();
+                    // Secara ideal muat ulang tabel di sini
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(err => {
+                showToast('Terdapat kesalahan jaringan', 'error');
+            })
+            .finally(() => {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-            }, 800);
+            });
         }
     </script>
 </body>

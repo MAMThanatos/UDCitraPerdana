@@ -123,17 +123,58 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    background-color: #e2e8f0; 
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #083359 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-body::before {
+    content: '';
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+    border-radius: 50%;
+    top: -100px;
+    right: -100px;
+    filter: blur(80px);
+    opacity: 0.4;
+    z-index: 0;
+}
+
+.login-body::after {
+    content: '';
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: linear-gradient(135deg, #818cf8, #6366f1);
+    border-radius: 50%;
+    bottom: -50px;
+    left: -100px;
+    filter: blur(80px);
+    opacity: 0.3;
+    z-index: 0;
 }
 
 .login-card {
-    background-color: var(--surface);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     width: 100%;
-    max-width: 400px;
-    padding: 40px 30px;
-    border-radius: var(--radius-lg);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    max-width: 420px;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     text-align: center;
+    position: relative;
+    z-index: 1;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cardEntrance {
+    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .login-logo {
@@ -261,6 +302,9 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 0 20px;
+    position: sticky;
+    top: 0;
+    z-index: 900;
 }
 
 .toggle-btn {
@@ -321,6 +365,13 @@ body {
     align-items: center;
     gap: 15px;
     border: 1px solid #f1f5f9;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+    border-color: #e2e8f0;
 }
 
 .card-icon {
@@ -472,7 +523,9 @@ body {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     align-items: center;
     justify-content: center;
 }
@@ -841,4 +894,58 @@ body {
     .activity-item {
         padding: 12px 15px;
     }
+}
+
+/* =========================================
+   TOAST NOTIFICATION
+   ========================================= */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    padding: 14px 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 280px;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text-main);
+    transform: translateX(120%);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    border-left: 4px solid transparent;
+}
+
+.toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast-success {
+    border-left-color: #10b981;
+}
+
+.toast-success i {
+    color: #10b981;
+    font-size: 18px;
+}
+
+.toast-error {
+    border-left-color: #ef4444;
+}
+
+.toast-error i {
+    color: #ef4444;
+    font-size: 18px;
 }

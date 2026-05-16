@@ -1,27 +1,104 @@
-document.addEventListener('DOMContentLoaded', function () {
-
-    // Toggle Password Visibility
-    const togglePassword = document.querySelector('#togglePassword');
-    const passwordInput = document.querySelector('#password');
-
-    if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', function () {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-
-            this.classList.toggle('fa-eye');
-            this.classList.toggle('fa-eye-slash');
-        });
+// Fungsi Global untuk Toast Notification
+window.showToast = function(message, type = 'success') {
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        document.body.appendChild(toastContainer);
     }
 
-    // Login Form Submit Logic - Show loading state
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    const icon = type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle');
+    
+    toast.innerHTML = `
+        <i class="fas ${icon}"></i>
+        <span>${message}</span>
+    `;
+
+    toastContainer.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 3000);
+};
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    // Toggle Password Visibility untuk Login & Register
+    const togglePasswordElements = document.querySelectorAll('.toggle-password');
+    togglePasswordElements.forEach(toggle => {
+        toggle.addEventListener('click', function () {
+            // Cari input di sebelahnya
+            const input = this.previousElementSibling;
+            if (input && (input.tagName === 'INPUT')) {
+                const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                input.setAttribute('type', type);
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            }
+        });
+    });
+
+    // Login Form Submit Logic (Dummy Bypass & Fetch ke PHP API)
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', function (e) {
+            e.preventDefault();
             const btn = this.querySelector('button');
+            const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Memproses...';
             btn.style.opacity = '0.8';
             btn.disabled = true;
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Dummy Bypass untuk testing
+            if (username === 'admin' && password === 'admin123') {
+                setTimeout(() => {
+                    showToast('Login berhasil (Dummy Account)! Mengalihkan...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '../../index.html';
+                    }, 800);
+                }, 1000);
+                return;
+            }
+
+            const formData = new FormData(this);
+
+            fetch('../../api/auth/login.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    showToast(data.message, 'success');
+                    setTimeout(() => {
+                        window.location.href = '../../index.html';
+                    }, 1000);
+                } else {
+                    showToast(data.message, 'error');
+                    btn.innerHTML = originalText;
+                    btn.style.opacity = '1';
+                    btn.disabled = false;
+                }
+            })
+            .catch(error => {
+                showToast('Terjadi kesalahan jaringan', 'error');
+                btn.innerHTML = originalText;
+                btn.style.opacity = '1';
+                btn.disabled = false;
+            });
         });
     }
 
@@ -141,6 +218,32 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td style="text-align: center; font-weight: bold; background-color: #f8fafc;">${item.akhir}</td>
             `;
             laporanStokTableBody.appendChild(row);
+        });
+    }
+
+    // Render Dummy Data untuk Halaman Manajemen Akun
+    const manajemenAkunTableBody = document.getElementById('manajemenAkunTableBody');
+    if (manajemenAkunTableBody) {
+        const dummyUsers = [
+            { id: 1, nama: 'Administrator Super', username: 'admin', role: 'Admin' },
+            { id: 2, nama: 'Budi Santoso', username: 'budi_gudang', role: 'Staff Gudang' },
+            { id: 3, nama: 'Siti Aminah', username: 'siti_manajer', role: 'Manajer' },
+        ];
+
+        dummyUsers.forEach(user => {
+            const roleBadge = user.role === 'Admin' ? 'badge-danger' : (user.role === 'Manajer' ? 'badge-info' : 'badge-success');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>USR-${String(user.id).padStart(3, '0')}</td>
+                <td style="font-weight: 500;">${user.nama}</td>
+                <td>${user.username}</td>
+                <td><span class="badge ${roleBadge}">${user.role}</span></td>
+                <td>
+                    <button class="btn-icon btn-edit" onclick="openModal('edit', '${user.id}')" title="Edit Pengguna"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon btn-delete" title="Hapus Pengguna"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            manajemenAkunTableBody.appendChild(row);
         });
     }
 
