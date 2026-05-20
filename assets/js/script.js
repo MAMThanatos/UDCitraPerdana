@@ -31,7 +31,59 @@ window.showToast = function(message, type = 'success') {
     }, 3000);
 };
 
-document.addEventListener('DOMContentLoaded', function () {
+const BASE_URL = window.location.pathname.substring(0, window.location.pathname.indexOf('/Projek/UdCitraPerdana') + 22);
+
+let USER_SESSION = null;
+
+document.addEventListener('DOMContentLoaded', async function () {
+    // Cek Session
+    try {
+        const response = await fetch(BASE_URL + '/api/auth/me.php');
+        const data = await response.json();
+        if (data.status === 'success') {
+            USER_SESSION = data.data;
+        }
+    } catch (error) {
+        console.error("Gagal mengecek session:", error);
+    }
+
+    const currentPath = window.location.pathname;
+    const isLoginPage = currentPath.includes('login.html') || currentPath.includes('register.html');
+
+    if (!USER_SESSION && !isLoginPage) {
+        window.location.href = BASE_URL + '/views/auth/login.html';
+        return;
+    }
+
+    if (USER_SESSION && isLoginPage) {
+        window.location.href = BASE_URL + '/index.html';
+        return;
+    }
+
+    // Update UI dengan data User
+    if (USER_SESSION) {
+        const profileBtn = document.getElementById('userProfileBtn');
+        const dropdownMenu = document.getElementById('userDropdownMenu');
+        
+        if (profileBtn) {
+            profileBtn.querySelector('span').textContent = USER_SESSION.nama_lengkap;
+        }
+        
+        if (dropdownMenu) {
+            dropdownMenu.querySelector('.dropdown-user-name').textContent = USER_SESSION.nama_lengkap;
+            dropdownMenu.querySelector('.dropdown-user-role').textContent = USER_SESSION.role;
+            
+            // Logout Action
+            const logoutBtn = dropdownMenu.querySelector('.logout');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    await fetch(BASE_URL + '/api/auth/logout.php');
+                    window.location.href = BASE_URL + '/views/auth/login.html';
+                });
+            }
+        }
+    }
 
     // Toggle Password Visibility untuk Login & Register
     const togglePasswordElements = document.querySelectorAll('.toggle-password');
@@ -48,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Login Form Submit Logic (Dummy Bypass & Fetch ke PHP API)
+    // Login Form Submit Logic (Fetch ke PHP API)
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', function (e) {
@@ -59,23 +111,9 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.style.opacity = '0.8';
             btn.disabled = true;
 
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            // Dummy Bypass untuk testing
-            if (username === 'admin' && password === 'admin123') {
-                setTimeout(() => {
-                    showToast('Login berhasil (Dummy Account)! Mengalihkan...', 'success');
-                    setTimeout(() => {
-                        window.location.href = '../../index.html';
-                    }, 800);
-                }, 1000);
-                return;
-            }
-
             const formData = new FormData(this);
 
-            fetch('../../api/auth/login.php', {
+            fetch(BASE_URL + '/api/auth/login.php', {
                 method: 'POST',
                 body: formData
             })
@@ -84,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if(data.status === 'success') {
                     showToast(data.message, 'success');
                     setTimeout(() => {
-                        window.location.href = '../../index.html';
+                        window.location.href = BASE_URL + '/index.html';
                     }, 1000);
                 } else {
                     showToast(data.message, 'error');
