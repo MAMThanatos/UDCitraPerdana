@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Kelola akun pengguna, username, password, dan hak akses (role) administrator, staf gudang, atau manajer di lingkungan UD Citra Perdana.">
     <title>Manajemen Akun - Citra Perdana</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -175,65 +176,5 @@
     </div>
 
     <script src="../../assets/js/script.js"></script>
-    <script>
-        // Modal Logic Khusus Halaman Manajemen Akun
-        const modal = document.getElementById('akunModal');
-        
-        function openModal(mode, id = '') {
-            modal.style.display = 'flex';
-            const title = document.getElementById('modalTitle');
-            if(mode === 'edit') {
-                title.textContent = 'Edit Pengguna';
-                document.getElementById('password').required = false;
-                document.getElementById('password').placeholder = "Kosongkan jika tidak ingin mengubah sandi";
-            } else {
-                title.textContent = 'Tambah Pengguna Baru';
-                document.getElementById('akunForm').reset();
-                document.getElementById('password').required = true;
-                document.getElementById('password').placeholder = "Masukkan password";
-            }
-        }
-
-        function closeModal() {
-            modal.style.display = 'none';
-        }
-
-        function simpanAkun(btn) {
-            const form = document.getElementById('akunForm');
-            if(!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Menyimpan...';
-            btn.disabled = true;
-            
-            // Call API Register (Dummy mode)
-            const formData = new FormData(form);
-            fetch('../../api/auth/register.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === 'success') {
-                    showToast('Pengguna berhasil ditambahkan!', 'success');
-                    closeModal();
-                    // Secara ideal muat ulang tabel di sini
-                    setTimeout(() => window.location.reload(), 1000);
-                } else {
-                    showToast(data.message, 'error');
-                }
-            })
-            .catch(err => {
-                showToast('Terdapat kesalahan jaringan', 'error');
-            })
-            .finally(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            });
-        }
-    </script>
 </body>
 </html>
