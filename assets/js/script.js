@@ -31,12 +31,32 @@ window.showToast = function(message, type = 'success') {
     }, 3000);
 };
 
-const BASE_URL = window.location.pathname.substring(0, window.location.pathname.indexOf('/Projek/UdCitraPerdana') + 22);
+const getBaseUrl = () => {
+    const path = window.location.pathname;
+    const lowerPath = path.toLowerCase();
+    const searchStr = '/projek/udcitraperdana';
+    const index = lowerPath.indexOf(searchStr);
+    
+    if (index !== -1) {
+        return path.substring(0, index + searchStr.length);
+    }
+    
+    // Fallback: hitung relatif berdasarkan kedalaman direktori saat ini jika diakses via file://
+    if (path.includes('/views/')) {
+        if (path.includes('/views/auth/') || path.includes('/views/barang/') || path.includes('/views/laporan/') || path.includes('/views/transaksi/') || path.includes('/views/user/')) {
+            return '../..';
+        }
+        return '..';
+    }
+    return '.';
+};
+
+const BASE_URL = getBaseUrl();
 
 let USER_SESSION = null;
 
 document.addEventListener('DOMContentLoaded', async function () {
-    // Cek Session
+    // Cek Session (PHP Backend)
     try {
         const response = await fetch(BASE_URL + '/api/auth/me.php');
         const data = await response.json();
@@ -44,7 +64,19 @@ document.addEventListener('DOMContentLoaded', async function () {
             USER_SESSION = data.data;
         }
     } catch (error) {
-        console.error("Gagal mengecek session:", error);
+        console.warn("Gagal mengecek session backend (PHP/Database mati), menggunakan local fallback:", error);
+    }
+
+    // Fallback ke LocalStorage jika backend offline
+    if (!USER_SESSION) {
+        const localSession = localStorage.getItem('ud_session');
+        if (localSession) {
+            try {
+                USER_SESSION = JSON.parse(localSession);
+            } catch (e) {
+                console.error("Gagal membaca session lokal:", e);
+            }
+        }
     }
 
     const currentPath = window.location.pathname;
@@ -78,7 +110,10 @@ document.addEventListener('DOMContentLoaded', async function () {
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async function(e) {
                     e.preventDefault();
-                    await fetch(BASE_URL + '/api/auth/logout.php');
+                    try {
+                        await fetch(BASE_URL + '/api/auth/logout.php');
+                    } catch(err) {}
+                    localStorage.removeItem('ud_session');
                     window.location.href = BASE_URL + '/views/auth/login.html';
                 });
             }
@@ -100,7 +135,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     });
 
-    // Login Form Submit Logic (Fetch ke PHP API)
+    // Login Form Submit Logic (Fetch ke PHP API + Mock Mode)
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', function (e) {
@@ -112,6 +147,42 @@ document.addEventListener('DOMContentLoaded', async function () {
             btn.disabled = true;
 
             const formData = new FormData(this);
+            const usernameInput = formData.get('username');
+            const passwordInput = formData.get('password');
+
+            // Fungsi pembantu untuk memproses mock login
+            const tryMockLogin = () => {
+                if ((usernameInput === 'admin' && passwordInput === 'admin123') || 
+                    (usernameInput === 'budi_gudang' && passwordInput === 'budi123') ||
+                    (usernameInput === 'siti_manajer' && passwordInput === 'siti123')) {
+                    
+                    let nama = 'Admin Gudang';
+                    let role = 'Administrator';
+                    if (usernameInput === 'budi_gudang') {
+                        nama = 'Budi Santoso';
+                        role = 'Staff Gudang';
+                    } else if (usernameInput === 'siti_manajer') {
+                        nama = 'Siti Aminah';
+                        role = 'Manajer';
+                    }
+                    
+                    const mockSession = {
+                        id_user: 1,
+                        username: usernameInput,
+                        nama_lengkap: nama,
+                        role: role
+                    };
+                    
+                    localStorage.setItem('ud_session', JSON.stringify(mockSession));
+                    showToast('Login berhasil! (Mode Simulasi Offline)', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = BASE_URL + '/index.html';
+                    }, 1000);
+                    return true;
+                }
+                return false;
+            };
 
             fetch(BASE_URL + '/api/auth/login.php', {
                 method: 'POST',
@@ -120,11 +191,24 @@ document.addEventListener('DOMContentLoaded', async function () {
             .then(response => response.json())
             .then(data => {
                 if(data.status === 'success') {
+                    // Simpan ke local juga agar backend-independent
+                    localStorage.setItem('ud_session', JSON.stringify({
+                        id_user: data.user.id_user || 1,
+                        username: usernameInput,
+                        nama_lengkap: data.user.nama,
+                        role: data.user.role
+                    }));
                     showToast(data.message, 'success');
                     setTimeout(() => {
                         window.location.href = BASE_URL + '/index.html';
                     }, 1000);
                 } else {
+                    // Jika database online tapi user tidak ditemukan (database kosong / belum di-seed)
+                    // Coba gunakan mock credentials sebagai fallback
+                    if (tryMockLogin()) {
+                        return;
+                    }
+                    
                     showToast(data.message, 'error');
                     btn.innerHTML = originalText;
                     btn.style.opacity = '1';
@@ -132,10 +216,17 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
             })
             .catch(error => {
-                showToast('Terjadi kesalahan jaringan', 'error');
-                btn.innerHTML = originalText;
-                btn.style.opacity = '1';
-                btn.disabled = false;
+                console.warn("Koneksi API gagal, menggunakan simulasi offline:", error);
+                
+                // MOCK AUTHENTICATION FALLBACK
+                if (tryMockLogin()) {
+                    return;
+                } else {
+                    showToast('Username atau password salah! (Gunakan admin / admin123)', 'error');
+                    btn.innerHTML = originalText;
+                    btn.style.opacity = '1';
+                    btn.disabled = false;
+                }
             });
         });
     }
