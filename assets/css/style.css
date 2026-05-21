@@ -938,8 +938,143 @@ body {
     font-size: 12px;
 }
 
+/* =========================================
+   SIDEBAR OVERLAY & RESPONSIVE DESIGN
+   ========================================= */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 1050;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Premium Scrollbar for Table Container */
+.table-container::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+}
+.table-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: var(--radius-sm);
+}
+.table-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: var(--radius-sm);
+}
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Desktop Collapsed Sidebar Styles */
+@media (min-width: 769px) {
+    .sidebar {
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .sidebar.collapsed {
+        width: 70px;
+    }
+    
+    .sidebar.collapsed .sidebar-header h2 {
+        font-size: 0;
+    }
+    
+    .sidebar.collapsed .sidebar-menu .menu-label,
+    .sidebar.collapsed .sidebar-menu span {
+        display: none;
+    }
+    
+    .sidebar.collapsed .sidebar-header {
+        justify-content: center;
+        padding: 0;
+    }
+    
+    .sidebar.collapsed .sidebar-header img {
+        margin-right: 0 !important;
+        max-height: 35px;
+    }
+    
+    .sidebar.collapsed .sidebar-menu a {
+        justify-content: center;
+        padding: 12px 0;
+        border-right: none;
+    }
+    
+    .sidebar.collapsed .sidebar-menu a.active,
+    .sidebar.collapsed .sidebar-menu a:hover {
+        border-left: 4px solid var(--primary);
+        background-color: #eff6ff;
+    }
+    
+    .sidebar.collapsed .sidebar-menu a i {
+        width: auto;
+        font-size: 20px;
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 1100;
+        width: 260px;
+        transform: translateX(-100%);
+        box-shadow: none;
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+        box-shadow: 10px 0 30px rgba(15, 23, 42, 0.15);
+    }
+    
+    .content-area {
+        padding: 20px 15px;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .page-header .btn {
+        width: 100%;
+    }
+    
+    .dashboard-cards {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .table-header-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+        padding: 15px;
+    }
+    
+    .search-box {
+        width: 100%;
+    }
+
     .monitoring-grid {
         grid-template-columns: 1fr;
     }

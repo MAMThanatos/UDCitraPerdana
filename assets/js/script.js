@@ -231,17 +231,45 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     }
 
-    // Sidebar Toggle
+    // Sidebar Toggle & Mobile Responsiveness
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('sidebar');
 
-    if (sidebarToggle && sidebar) {
-        sidebarToggle.addEventListener('click', () => {
-            if (sidebar.style.display === 'none' || sidebar.style.display === '') {
-                sidebar.style.display = 'flex';
-            } else {
-                sidebar.style.display = 'none';
-            }
+    if (sidebar) {
+        // Buat overlay secara dinamis jika belum ada untuk mobile drawer
+        let overlay = document.getElementById('sidebarOverlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'sidebarOverlay';
+            overlay.className = 'sidebar-overlay';
+            document.body.appendChild(overlay);
+        }
+
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                } else {
+                    sidebar.classList.toggle('collapsed');
+                }
+            });
+        }
+
+        // Klik overlay untuk menutup sidebar mobile
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        });
+
+        // Klik link menu di sidebar mobile juga otomatis menutup sidebar
+        const menuLinks = sidebar.querySelectorAll('.sidebar-menu a');
+        menuLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            });
         });
     }
 
