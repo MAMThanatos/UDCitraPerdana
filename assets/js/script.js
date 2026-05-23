@@ -411,6 +411,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 <td>${item.stok}</td>
                 <td>Rp ${item.harga.toLocaleString('id-ID')}</td>
                 <td>
+                    <button class="btn-icon" style="color: #6366f1; background: rgba(99, 102, 241, 0.1);" onclick="showQrCode('${item.kode_barang}', '${item.nama_barang}')" title="Tampilkan QR Code"><i class="fas fa-qrcode"></i></button>
                     <button class="btn-icon btn-edit" onclick="openModal('edit', '${item.kode_barang}')" title="Edit Data"><i class="fas fa-edit"></i></button>
                     <button class="btn-icon btn-delete" onclick="deleteBarang('${item.kode_barang}')" title="Hapus Data"><i class="fas fa-trash"></i></button>
                 </td>
@@ -1178,6 +1179,8 @@ window.onclick = function(event) {
     const barangModal = document.getElementById('barangModal');
     const transaksiModal = document.getElementById('transaksiModal');
     const akunModal = document.getElementById('akunModal');
+    const qrModal = document.getElementById('qrModal');
+    const scannerModal = document.getElementById('scannerModal');
     
     if (event.target == barangModal) {
         barangModal.style.display = "none";
@@ -1188,4 +1191,172 @@ window.onclick = function(event) {
     if (event.target == akunModal) {
         akunModal.style.display = "none";
     }
+    if (event.target == qrModal) {
+        qrModal.style.display = "none";
+    }
+    if (event.target == scannerModal) {
+        scannerModal.style.display = "none";
+    }
+};
+
+// ==========================================================
+// SYSTEM QR CODE GENERATOR & SCAN SIMULATOR
+// ==========================================================
+
+// Tampilkan QR Code Barang
+window.showQrCode = function(kode, nama) {
+    const modal = document.getElementById('qrModal');
+    const qrNama = document.getElementById('qrNamaBarang');
+    const qrKode = document.getElementById('qrKodeBarang');
+    const qrImage = document.getElementById('qrImage');
+    
+    if (modal && qrNama && qrKode && qrImage) {
+        qrNama.innerText = nama;
+        qrKode.innerText = kode;
+        
+        // Menggunakan API QR Server (Gratis, instan, & andal)
+        const qrDataString = encodeURIComponent(`Kode: ${kode}\nNama: ${nama}\nSistem Inventaris UD Citra Perdana`);
+        qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrDataString}`;
+        
+        modal.style.display = 'flex';
+    }
+};
+
+// Tutup QR Modal
+window.closeQrModal = function() {
+    const modal = document.getElementById('qrModal');
+    if (modal) modal.style.display = 'none';
+};
+
+// Buka Simulator Scanner QR
+window.openScannerSim = function() {
+    const modal = document.getElementById('scannerModal');
+    const container = document.getElementById('scannerBarangList');
+    
+    if (modal && container) {
+        modal.style.display = 'flex';
+        
+        // Ambil data barang aktif dari DB
+        const barangList = DB.get('ud_barang', []);
+        container.innerHTML = '';
+        
+        if (barangList.length === 0) {
+            container.innerHTML = '<div style="color: var(--text-muted); font-size: 13px;">Belum ada data barang untuk dipindai.</div>';
+            return;
+        }
+        
+        // Render barang list sebagai stiker label QR cepat
+        barangList.forEach(item => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'activity-item';
+            itemDiv.style.cursor = 'pointer';
+            itemDiv.style.border = '1px solid var(--border-color)';
+            itemDiv.style.borderRadius = 'var(--radius-sm)';
+            itemDiv.style.padding = '8px 10px';
+            itemDiv.style.transition = 'all 0.2s';
+            
+            itemDiv.innerHTML = `
+                <div style="display: flex; align-items: center; width: 100%; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-qrcode" style="color: #6366f1; font-size: 16px;"></i>
+                        <div>
+                            <div style="font-weight: 600; font-size: 13px; color: var(--text-main);">${item.kode_barang}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">${item.nama_barang}</div>
+                        </div>
+                    </div>
+                    <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px;">Pindai</span>
+                </div>
+            `;
+            
+            // Hover effect
+            itemDiv.onmouseover = () => {
+                itemDiv.style.backgroundColor = 'rgba(99, 102, 241, 0.05)';
+                itemDiv.style.borderColor = '#6366f1';
+            };
+            itemDiv.onmouseout = () => {
+                itemDiv.style.backgroundColor = '';
+                itemDiv.style.borderColor = 'var(--border-color)';
+            };
+            
+            // Onclick trigger pemindaian
+            itemDiv.onclick = () => {
+                triggerScanSuccess(item.nama_barang, item.kode_barang);
+            };
+            
+            container.appendChild(itemDiv);
+        });
+    }
+};
+
+// Tutup Simulator Scanner QR
+window.closeScannerSim = function() {
+    const modal = document.getElementById('scannerModal');
+    if (modal) modal.style.display = 'none';
+};
+
+// Simulasi Scan Berhasil (Beep + Auto Fill)
+window.triggerScanSuccess = function(nama, kode) {
+    const selectBarang = document.getElementById('pilihBarang');
+    if (!selectBarang) return;
+    
+    // 1. Simulasikan Beep Audio menggunakan Web Audio API
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = oscillator || audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.value = 1200; // Frekuensi Bip scanner
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        
+        oscillator.start();
+        setTimeout(() => {
+            oscillator.stop();
+        }, 100);
+    } catch (e) {
+        console.warn("Web Audio API not supported, skipping beep sound");
+    }
+    
+    // 2. Mainkan Animasi Berhasil di Scanner Modal
+    const scannerIcon = document.getElementById('scannerIcon');
+    if (scannerIcon) {
+        scannerIcon.innerHTML = `
+            <i class="fas fa-check-circle fa-4x" style="color: #10b981; margin-bottom: 10px; animation: pulse 0.5s;"></i>
+            <span style="font-size: 11px; font-weight: 500; letter-spacing: 1px; color: #10b981;">PEMINDAIAN BERHASIL!</span>
+        `;
+    }
+    
+    // 3. Isi form otomatis dan tutup scanner setelah jeda kecil
+    setTimeout(() => {
+        let found = false;
+        for (let i = 0; i < selectBarang.options.length; i++) {
+            const opt = selectBarang.options[i];
+            if (opt.value === nama || opt.value === kode || opt.text.includes(kode)) {
+                selectBarang.selectedIndex = i;
+                found = true;
+                break;
+            }
+        }
+        
+        selectBarang.dispatchEvent(new Event('change'));
+        
+        if (found) {
+            showToast(`Pindai QR Berhasil: ${nama} (${kode})`, 'success');
+        } else {
+            showToast(`Gagal memindai: Barang tidak ditemukan di opsi form`, 'error');
+        }
+        
+        closeScannerSim();
+        
+        // Reset scanner modal icon
+        if (scannerIcon) {
+            scannerIcon.innerHTML = `
+                <i class="fas fa-qrcode fa-4x" style="margin-bottom: 10px; animation: pulse 1.5s infinite;"></i>
+                <span style="font-size: 11px; font-weight: 500; letter-spacing: 1px; color: rgba(255,255,255,0.4);">MENCARI QR CODE...</span>
+            `;
+        }
+    }, 600);
 };

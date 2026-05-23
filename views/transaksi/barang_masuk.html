@@ -161,7 +161,10 @@
                         </div>
                     </div>
                     <div class="input-group">
-                        <label>Pilih Barang</label>
+                        <label style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Pilih Barang</span>
+                            <button type="button" class="btn btn-secondary" onclick="openScannerSim()" style="padding: 2px 8px; font-size: 12px; background: rgba(99, 102, 241, 0.1); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.2); cursor: pointer;"><i class="fas fa-qrcode" style="margin-right: 4px;"></i> Scan QR</button>
+                        </label>
                         <div class="input-wrapper">
                             <select id="pilihBarang" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 14px; outline: none; color: var(--text-main); background-color: var(--surface);" required>
                                 <option value="">-- Pilih Barang --</option>
@@ -190,6 +193,51 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModalTransaksi()">Batal</button>
                 <button class="btn btn-primary" onclick="saveTransaksi()"><i class="fas fa-save" style="margin-right: 5px;"></i> Simpan Transaksi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Simulator Scan QR -->
+    <div id="scannerModal" class="modal" style="z-index: 1100;">
+        <div class="modal-content" style="max-width: 450px; text-align: center; overflow: hidden; position: relative;">
+            <div class="modal-header">
+                <h3><i class="fas fa-camera" style="margin-right: 8px;"></i> Simulator Pemindai QR</h3>
+                <span class="close-btn" onclick="closeScannerSim()">&times;</span>
+            </div>
+            <div class="modal-body" style="padding: 20px 10px;">
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">
+                    Simulasi memindai QR Code stiker fisik barang menggunakan kamera smartphone Staf Gudang.
+                </p>
+                
+                <!-- Viewfinder Pemindai -->
+                <div style="width: 100%; height: 200px; background: #000; border-radius: var(--radius-lg); position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 20px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8);">
+                    
+                    <!-- Scanner Laser (Animasi naik turun) -->
+                    <div style="width: 100%; height: 2px; background: #ef4444; box-shadow: 0 0 8px #ef4444; position: absolute; left: 0; top: 0; animation: laserMove 2s infinite linear; z-index: 2;"></div>
+                    
+                    <!-- Target Area Scan -->
+                    <div style="width: 140px; height: 140px; border: 2px dashed #10b981; position: absolute; border-radius: var(--radius-md); box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); z-index: 1;"></div>
+                    
+                    <!-- Simulated Camera Noise / Overlay -->
+                    <div style="position: absolute; width: 100%; height: 100%; background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.4) 100%); z-index: 1;"></div>
+                    
+                    <!-- Sim Camera Icon / Text -->
+                    <div id="scannerIcon" style="z-index: 0; color: rgba(255,255,255,0.15); display: flex; flex-direction: column; align-items: center;">
+                        <i class="fas fa-qrcode fa-4x" style="margin-bottom: 10px; animation: pulse 1.5s infinite;"></i>
+                        <span style="font-size: 11px; font-weight: 500; letter-spacing: 1px; color: rgba(255,255,255,0.4);">MENCARI QR CODE...</span>
+                    </div>
+                </div>
+
+                <!-- Daftar QR Code Cepat untuk Dipindai -->
+                <div style="text-align: left; background: var(--surface); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <h5 style="margin-bottom: 8px; color: var(--text-main); font-size: 13px;"><i class="fas fa-list" style="margin-right: 5px;"></i> Klik untuk Simulasikan Pemindaian Barang:</h5>
+                    <div id="scannerBarangList" style="display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto; padding-right: 5px;">
+                        <!-- Daftar barang dinamis dari JS -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: center;">
+                <button class="btn btn-secondary" onclick="closeScannerSim()">Batal</button>
             </div>
         </div>
     </div>

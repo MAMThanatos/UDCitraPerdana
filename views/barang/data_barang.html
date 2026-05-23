@@ -185,6 +185,30 @@
         </div>
     </div>
 
+    <!-- Modal QR Code -->
+    <div id="qrModal" class="modal">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <div class="modal-header">
+                <h3>QR Code Barang</h3>
+                <span class="close-btn" onclick="closeQrModal()">&times;</span>
+            </div>
+            <div class="modal-body" style="padding: 20px 10px;">
+                <h4 id="qrNamaBarang" style="margin-bottom: 5px; color: var(--text-main);">Nama Barang</h4>
+                <p id="qrKodeBarang" style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px; font-weight: 600;">BRG-001</p>
+                <div style="background: white; padding: 15px; border-radius: var(--radius-lg); display: inline-block; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); margin-bottom: 20px;">
+                    <img id="qrImage" src="" alt="QR Code" style="width: 200px; height: 200px; display: block;">
+                </div>
+                <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4; margin-bottom: 15px;">
+                    Pindai QR Code ini untuk mendeteksi informasi barang secara instan atau tempel di lokasi fisik barang.
+                </p>
+            </div>
+            <div class="modal-footer" style="justify-content: center;">
+                <button class="btn btn-secondary" onclick="closeQrModal()">Tutup</button>
+                <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print" style="margin-right: 5px;"></i> Cetak QR</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../../assets/js/script.js"></script>
 </body>
 </html>
