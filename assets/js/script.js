@@ -79,6 +79,13 @@ const DB = {
     
     // Inisialisasi Database
     init() {
+        // Melakukan migrasi database lokal jika ada skema lama (seperti role Manajer atau Admin)
+        const currentUsers = localStorage.getItem('ud_users');
+        if (currentUsers && (currentUsers.includes('"Manajer"') || currentUsers.includes('"Admin"'))) {
+            localStorage.removeItem('ud_users');
+            localStorage.removeItem('ud_session');
+        }
+
         this.get('ud_barang', [
             { id_barang: 1, kode_barang: 'BRG-001', nama_barang: 'Semen Gresik 50kg', kategori: 'Material Dasar', stok: 150, satuan: 'Zak', harga: 65000 },
             { id_barang: 2, kode_barang: 'BRG-002', nama_barang: 'Paku Payung 5cm', kategori: 'Aksesoris', stok: 500, satuan: 'Kotak', harga: 15000 },
@@ -100,9 +107,8 @@ const DB = {
         ]);
         
         this.get('ud_users', [
-            { id: 1, nama: 'Administrator Super', username: 'admin', role: 'Admin' },
-            { id: 2, nama: 'Budi Santoso', username: 'budi_gudang', role: 'Staff Gudang' },
-            { id: 3, nama: 'Siti Aminah', username: 'siti_manajer', role: 'Manajer' }
+            { id: 1, nama: 'Administrator Super', username: 'admin', role: 'Admin / Owner' },
+            { id: 2, nama: 'Budi Santoso', username: 'budi_gudang', role: 'Staf Gudang' }
         ]);
     }
 };
@@ -145,7 +151,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     if (USER_SESSION && isLoginPage) {
-        window.location.href = BASE_URL + '/index.html';
+        if (USER_SESSION.role === 'Staf Gudang') {
+            window.location.href = BASE_URL + '/views/barang/data_barang.html';
+        } else {
+            window.location.href = BASE_URL + '/index.html';
+        }
         return;
     }
 
@@ -173,6 +183,41 @@ document.addEventListener('DOMContentLoaded', async function () {
                     localStorage.removeItem('ud_session');
                     window.location.href = BASE_URL + '/views/auth/login.html';
                 });
+            }
+        }
+    }
+
+    // Enforce role-based menu visibility based on Use Case Diagram (2 Roles)
+    if (USER_SESSION) {
+        if (USER_SESSION.role === 'Staf Gudang') {
+            // 1. Hide "Dashboard" link from sidebar
+            const dashboardLinks = document.querySelectorAll('a[href*="index.html"]');
+            dashboardLinks.forEach(link => {
+                const li = link.closest('li');
+                if (li) {
+                    li.style.display = 'none';
+                }
+            });
+
+            // 2. Hide "Manajemen Akun" link from sidebar
+            const manajemenAkunLinks = document.querySelectorAll('a[href*="manajemen_akun.html"]');
+            manajemenAkunLinks.forEach(link => {
+                const li = link.closest('li');
+                if (li) {
+                    li.style.display = 'none';
+                    // Hide the preceding menu label "Pengaturan"
+                    const prev = li.previousElementSibling;
+                    if (prev && prev.classList.contains('menu-label')) {
+                        prev.style.display = 'none';
+                    }
+                }
+            });
+            
+            // 3. Redirect if they try to access index.html or manajemen_akun.html manually
+            const onIndexPage = currentPath.endsWith('/') || currentPath.endsWith('index.html') || currentPath.includes('index.html');
+            if (onIndexPage || currentPath.includes('manajemen_akun.html')) {
+                window.location.href = BASE_URL + '/views/barang/data_barang.html';
+                return;
             }
         }
     }
@@ -210,21 +255,17 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Fungsi pembantu untuk memproses mock login
             const tryMockLogin = () => {
                 if ((usernameInput === 'admin' && passwordInput === 'admin123') || 
-                    (usernameInput === 'budi_gudang' && passwordInput === 'budi123') ||
-                    (usernameInput === 'siti_manajer' && passwordInput === 'siti123')) {
+                    (usernameInput === 'budi_gudang' && passwordInput === 'budi123')) {
                     
-                    let nama = 'Admin Gudang';
-                    let role = 'Administrator';
+                    let nama = 'Administrator Super';
+                    let role = 'Admin / Owner';
                     if (usernameInput === 'budi_gudang') {
                         nama = 'Budi Santoso';
-                        role = 'Staff Gudang';
-                    } else if (usernameInput === 'siti_manajer') {
-                        nama = 'Siti Aminah';
-                        role = 'Manajer';
+                        role = 'Staf Gudang';
                     }
                     
                     const mockSession = {
-                        id_user: 1,
+                        id_user: usernameInput === 'admin' ? 1 : 2,
                         username: usernameInput,
                         nama_lengkap: nama,
                         role: role
@@ -234,7 +275,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                     showToast('Login berhasil! (Mode Simulasi Offline)', 'success');
                     
                     setTimeout(() => {
-                        window.location.href = BASE_URL + '/index.html';
+                        if (role === 'Staf Gudang') {
+                            window.location.href = BASE_URL + '/views/barang/data_barang.html';
+                        } else {
+                            window.location.href = BASE_URL + '/index.html';
+                        }
                     }, 1000);
                     return true;
                 }
@@ -257,7 +302,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                     }));
                     showToast(data.message, 'success');
                     setTimeout(() => {
-                        window.location.href = BASE_URL + '/index.html';
+                        if (data.user.role === 'Staf Gudang' || data.user.role === 'Staff Gudang') {
+                            window.location.href = BASE_URL + '/views/barang/data_barang.html';
+                        } else {
+                            window.location.href = BASE_URL + '/index.html';
+                        }
                     }, 1000);
                 } else {
                     // Jika database online tapi user tidak ditemukan (database kosong / belum di-seed)
@@ -508,7 +557,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
         
         filtered.forEach(user => {
-            const roleBadge = user.role === 'Admin' ? 'badge-danger' : (user.role === 'Manajer' ? 'badge-info' : 'badge-success');
+            const roleBadge = user.role === 'Admin / Owner' ? 'badge-danger' : 'badge-success';
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>USR-${String(user.id).padStart(3, '0')}</td>
