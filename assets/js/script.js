@@ -79,6 +79,14 @@ const DB = {
     
     // Inisialisasi Database
     init() {
+        // Bersihkan data dummy lama sekali saja agar browser klien bersih
+        if (!localStorage.getItem('ud_cleaned_dummy')) {
+            localStorage.removeItem('ud_barang');
+            localStorage.removeItem('ud_transaksi_masuk');
+            localStorage.removeItem('ud_transaksi_keluar');
+            localStorage.setItem('ud_cleaned_dummy', 'true');
+        }
+
         // Melakukan migrasi database lokal jika ada skema lama (seperti role Manajer atau Admin)
         const currentUsers = localStorage.getItem('ud_users');
         if (currentUsers && (currentUsers.includes('"Manajer"') || currentUsers.includes('"Admin"'))) {
@@ -94,25 +102,11 @@ const DB = {
             localStorage.removeItem('ud_transaksi_keluar');
         }
 
-        this.get('ud_barang', [
-            { id_barang: 1, kode_barang: 'BRG-001', nama_barang: 'Semen Gresik 50kg', kategori: 'Material Dasar', stok: 150, satuan: 'Zak', harga: 65000, harga_beli: 60000, deskripsi: 'Semen Gresik PPC berkualitas tinggi untuk konstruksi beton', berat: '50 kg', dimensi: '60x45x15 cm', lokasi_rak: 'A-1', stok_minimum: 50 },
-            { id_barang: 2, kode_barang: 'BRG-002', nama_barang: 'Paku Payung 5cm', kategori: 'Aksesoris', stok: 500, satuan: 'Kotak', harga: 15000, harga_beli: 12000, deskripsi: 'Paku payung galvanis antikarat isi 100 pcs', berat: '0.5 kg', dimensi: '10x10x5 cm', lokasi_rak: 'B-2', stok_minimum: 100 },
-            { id_barang: 3, kode_barang: 'BRG-003', nama_barang: 'Cat Tembok Dulux', kategori: 'Finishing', stok: 30, satuan: 'Pail', harga: 150000, harga_beli: 135000, deskripsi: 'Cat tembok interior Dulux warna putih cerah', berat: '20 kg', dimensi: '30x30x40 cm', lokasi_rak: 'C-1', stok_minimum: 10 },
-            { id_barang: 4, kode_barang: 'BRG-004', nama_barang: 'Besi Beton 10mm', kategori: 'Material Dasar', stok: 200, satuan: 'Batang', harga: 85000, harga_beli: 78000, deskripsi: 'Besi beton ulir standar SNI panjang 12 meter', berat: '7.4 kg', dimensi: '1200x1x1 cm', lokasi_rak: 'A-4', stok_minimum: 50 },
-            { id_barang: 5, kode_barang: 'BRG-005', nama_barang: 'Pipa PVC 3/4 inch', kategori: 'Plumbing', stok: 120, satuan: 'Batang', harga: 25000, harga_beli: 20000, deskripsi: 'Pipa PVC Wavin AW tebal panjang 4 meter', berat: '1.2 kg', dimensi: '400x2.5x2.5 cm', lokasi_rak: 'D-3', stok_minimum: 30 }
-        ]);
+        this.get('ud_barang', []);
         
-        this.get('ud_transaksi_masuk', [
-            { id_masuk: 1, tanggal: '2026-05-10', ref: 'INV-202605-01', po: 'PO-202605-01', supplier: 'PT. Bangun Jaya', barang: 'Semen Gresik 50kg', qty: 50, qc: 'Baik (Lolos QC)', keterangan: 'Pengiriman lancar, kemasan utuh' },
-            { id_masuk: 2, tanggal: '2026-05-09', ref: 'INV-202605-02', po: 'PO-202605-02', supplier: 'Toko Besi Maju', barang: 'Besi Beton 10mm', qty: 100, qc: 'Baik (Lolos QC)', keterangan: 'Besi lurus dan tidak berkarat' },
-            { id_masuk: 3, tanggal: '2026-05-08', ref: 'INV-202605-03', po: 'PO-202605-03', supplier: 'CV. Warna Abadi', barang: 'Cat Tembok Dulux', qty: 15, qc: 'Baik (Lolos QC)', keterangan: 'Segel kaleng rapat' }
-        ]);
+        this.get('ud_transaksi_masuk', []);
         
-        this.get('ud_transaksi_keluar', [
-            { id_keluar: 1, tanggal: '2026-05-11', ref: 'OUT-202605-01', tujuan: 'Proyek Perumahan A', barang: 'Semen Gresik 50kg', qty: 20, tujuan_keluar: 'Penjualan / Distribusi', keterangan: 'Dikirim menggunakan truk armada' },
-            { id_keluar: 2, tanggal: '2026-05-10', ref: 'OUT-202605-02', tujuan: 'Proyek Renovasi B', barang: 'Cat Tembok Dulux', qty: 5, tujuan_keluar: 'Kebutuhan Produksi', keterangan: 'Pemakaian proyek interior' },
-            { id_keluar: 3, tanggal: '2026-05-09', ref: 'OUT-202605-03', tujuan: 'Mandor C (Eceran)', barang: 'Paku Payung 5cm', qty: 100, tujuan_keluar: 'Penjualan / Distribusi', keterangan: 'Penjualan retail langsung' }
-        ]);
+        this.get('ud_transaksi_keluar', []);
         
         this.get('ud_users', [
             { id: 1, nama: 'Administrator Super', username: 'admin', role: 'Admin / Owner' },
