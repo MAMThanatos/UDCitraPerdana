@@ -546,47 +546,94 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     };
 
-    window.renderLaporanStokTable = function(searchQuery = '', categoryFilter = '', monthFilter = '') {
+    window.renderLaporanStokTable = async function(searchQuery = '', categoryFilter = '', monthFilter = '') {
         const laporanStokTableBody = document.getElementById('laporanStokTableBody');
         if (!laporanStokTableBody) return;
         
-        const barangList = DB.get('ud_barang', []);
-        const masukList = DB.get('ud_transaksi_masuk', []);
-        const keluarList = DB.get('ud_transaksi_keluar', []);
-        laporanStokTableBody.innerHTML = '';
+        let reportData = [];
+        let isOffline = false;
         
-        const filtered = barangList.filter(item => {
-            const matchesSearch = item.nama_barang.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                  item.kode_barang.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesCategory = categoryFilter === '' || item.kategori === categoryFilter;
-            return matchesSearch && matchesCategory;
-        });
-        
-        if (filtered.length === 0) {
-            laporanStokTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Laporan tidak ditemukan</td></tr>';
-            return;
+        try {
+            const response = await fetch(BASE_URL + '/api/laporan/read_stok.php?month=' + monthFilter);
+            const data = await response.json();
+            if (data.status === 'success') {
+                reportData = data.data;
+            } else {
+                isOffline = true;
+            }
+        } catch (e) {
+            console.warn("Gagal menghubungi API laporan stok, menggunakan fallback offline local:", e);
+            isOffline = true;
         }
         
-        filtered.forEach(item => {
-            const itemMasuk = masukList.filter(t => t.barang === item.nama_barang && (monthFilter === '' || t.tanggal.startsWith(monthFilter)));
-            const itemKeluar = keluarList.filter(t => t.barang === item.nama_barang && (monthFilter === '' || t.tanggal.startsWith(monthFilter)));
-            const masukQty = itemMasuk.reduce((sum, t) => sum + parseInt(t.qty || 0), 0);
-            const keluarQty = itemKeluar.reduce((sum, t) => sum + parseInt(t.qty || 0), 0);
-            const akhir = parseInt(item.stok || 0);
-            const awal = akhir - masukQty + keluarQty;
+        laporanStokTableBody.innerHTML = '';
+        
+        if (isOffline) {
+            // --- OFFLINE FALLBACK CALCULATION ---
+            const barangList = DB.get('ud_barang', []);
+            const masukList = DB.get('ud_transaksi_masuk', []);
+            const keluarList = DB.get('ud_transaksi_keluar', []);
             
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${item.kode_barang}</td>
-                <td style="font-weight: 500;">${item.nama_barang}</td>
-                <td><span class="badge badge-info">${item.kategori}</span></td>
-                <td style="text-align: center;">${awal}</td>
-                <td style="text-align: center; color: #059669; font-weight: 600;">+ ${masukQty}</td>
-                <td style="text-align: center; color: #e11d48; font-weight: 600;">- ${keluarQty}</td>
-                <td style="text-align: center; font-weight: bold; background-color: #f8fafc;">${akhir}</td>
-            `;
-            laporanStokTableBody.appendChild(row);
-        });
+            const filtered = barangList.filter(item => {
+                const matchesSearch = item.nama_barang.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                       item.kode_barang.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchesCategory = categoryFilter === '' || item.kategori === categoryFilter;
+                return matchesSearch && matchesCategory;
+            });
+            
+            if (filtered.length === 0) {
+                laporanStokTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Laporan tidak ditemukan</td></tr>';
+                return;
+            }
+            
+            filtered.forEach(item => {
+                const itemMasuk = masukList.filter(t => t.barang === item.nama_barang && (monthFilter === '' || t.tanggal.startsWith(monthFilter)));
+                const itemKeluar = keluarList.filter(t => t.barang === item.nama_barang && (monthFilter === '' || t.tanggal.startsWith(monthFilter)));
+                const masukQty = itemMasuk.reduce((sum, t) => sum + parseInt(t.qty || 0), 0);
+                const keluarQty = itemKeluar.reduce((sum, t) => sum + parseInt(t.qty || 0), 0);
+                const akhir = parseInt(item.stok || 0);
+                const awal = akhir - masukQty + keluarQty;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.kode_barang}</td>
+                    <td style="font-weight: 500;">${item.nama_barang}</td>
+                    <td><span class="badge badge-info">${item.kategori}</span></td>
+                    <td style="text-align: center;">${awal}</td>
+                    <td style="text-align: center; color: #059669; font-weight: 600;">+ ${masukQty}</td>
+                    <td style="text-align: center; color: #e11d48; font-weight: 600;">- ${keluarQty}</td>
+                    <td style="text-align: center; font-weight: bold; background-color: #f8fafc;">${akhir}</td>
+                `;
+                laporanStokTableBody.appendChild(row);
+            });
+        } else {
+            // --- ONLINE REAL-TIME RENDER ---
+            const filtered = reportData.filter(item => {
+                const matchesSearch = item.nama_barang.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                       item.kode_barang.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchesCategory = categoryFilter === '' || item.kategori === categoryFilter;
+                return matchesSearch && matchesCategory;
+            });
+            
+            if (filtered.length === 0) {
+                laporanStokTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Laporan tidak ditemukan</td></tr>';
+                return;
+            }
+            
+            filtered.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.kode_barang}</td>
+                    <td style="font-weight: 500;">${item.nama_barang}</td>
+                    <td><span class="badge badge-info">${item.kategori}</span></td>
+                    <td style="text-align: center;">${item.awal}</td>
+                    <td style="text-align: center; color: #059669; font-weight: 600;">+ ${item.masuk}</td>
+                    <td style="text-align: center; color: #e11d48; font-weight: 600;">- ${item.keluar}</td>
+                    <td style="text-align: center; font-weight: bold; background-color: #f8fafc;">${item.akhir}</td>
+                `;
+                laporanStokTableBody.appendChild(row);
+            });
+        }
     };
 
     window.renderUserTable = function(searchQuery = '') {
