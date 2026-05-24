@@ -1710,3 +1710,62 @@ window.triggerScanSuccess = function(nama, kode) {
         }
     }, 600);
 };
+
+// ==========================================================
+// EXPORT LAPORAN STOK TO EXCEL
+// ==========================================================
+window.exportLaporanStokToExcel = function() {
+    const table = document.querySelector('.data-table');
+    if (!table) return;
+    
+    // Ambil isi HTML tabel
+    let html = table.outerHTML;
+    
+    // Bungkus dengan template Excel HTML standar
+    const template = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <!--[if gte mso 9]>
+            <xml>
+                <x:ExcelWorkbook>
+                    <x:ExcelWorksheets>
+                        <x:ExcelWorksheet>
+                            <x:Name>Laporan Stok</x:Name>
+                            <x:WorksheetOptions>
+                                <x:DisplayGridlines/>
+                            </x:WorksheetOptions>
+                        </x:ExcelWorksheet>
+                    </x:ExcelWorksheets>
+                </x:ExcelWorkbook>
+            </xml>
+            <![endif]-->
+            <meta charset="utf-8">
+            <style>
+                th { background-color: #0a3d62; color: white; font-weight: bold; }
+                td, th { border: 1px solid #ddd; text-align: left; padding: 8px; }
+            </style>
+        </head>
+        <body>
+            ${html}
+        </body>
+        </html>
+    `;
+    
+    const blob = new Blob([template], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    
+    const monthInput = document.querySelector('.table-header-actions input[type="month"]');
+    const monthVal = monthInput ? monthInput.value : '';
+    const suffix = monthVal ? `_${monthVal}` : '';
+    a.download = `Laporan_Stok_UD_Citra_Perdana${suffix}.xls`;
+    
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showToast('Laporan Stok berhasil diexport ke Excel!', 'success');
+};
