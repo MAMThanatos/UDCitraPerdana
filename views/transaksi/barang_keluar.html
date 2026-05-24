@@ -114,10 +114,11 @@
                         <thead>
                             <tr>
                                 <th>Tanggal</th>
-                                <th>No. Referensi</th>
+                                <th>No. Ref</th>
                                 <th>Tujuan / Proyek</th>
                                 <th>Barang</th>
                                 <th>Jumlah</th>
+                                <th>Jenis Keluar</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -176,16 +177,36 @@
                             </select>
                         </div>
                     </div>
-                    <div class="input-group">
-                        <label>Jumlah Keluar</label>
-                        <div class="input-wrapper">
-                            <input type="number" id="jumlahKeluar" placeholder="0" min="1" required>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="input-group">
+                            <label>Jumlah Keluar</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="jumlahKeluar" placeholder="0" min="1" required>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Tujuan Pengeluaran</label>
+                            <div class="input-wrapper">
+                                <select id="tujuanPengeluaran" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 14px; outline: none; color: var(--text-main); background-color: var(--surface);" required>
+                                    <option value="Penjualan / Distribusi">Penjualan / Distribusi</option>
+                                    <option value="Kebutuhan Produksi">Kebutuhan Produksi</option>
+                                    <option value="Pemakaian Internal">Pemakaian Internal</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div class="input-group">
-                        <label>Keterangan (Opsional)</label>
-                        <div class="input-wrapper">
-                            <input type="text" id="keterangan" placeholder="Catatan tambahan...">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="input-group">
+                            <label>Lokasi Rak Asal</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="lokasiAsal" placeholder="Pilih barang terlebih dahulu..." readonly style="background-color: var(--border-color); font-weight: 600; color: var(--primary);">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Keterangan (Opsional)</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="keterangan" placeholder="Catatan tambahan...">
+                            </div>
                         </div>
                     </div>
                 </form>

@@ -103,15 +103,15 @@ const DB = {
         ]);
         
         this.get('ud_transaksi_masuk', [
-            { id_masuk: 1, tanggal: '2026-05-10', ref: 'INV-202605-01', supplier: 'PT. Bangun Jaya', barang: 'Semen Gresik 50kg', qty: 50 },
-            { id_masuk: 2, tanggal: '2026-05-09', ref: 'INV-202605-02', supplier: 'Toko Besi Maju', barang: 'Besi Beton 10mm', qty: 100 },
-            { id_masuk: 3, tanggal: '2026-05-08', ref: 'INV-202605-03', supplier: 'CV. Warna Abadi', barang: 'Cat Tembok Dulux', qty: 15 }
+            { id_masuk: 1, tanggal: '2026-05-10', ref: 'INV-202605-01', po: 'PO-202605-01', supplier: 'PT. Bangun Jaya', barang: 'Semen Gresik 50kg', qty: 50, qc: 'Baik (Lolos QC)', keterangan: 'Pengiriman lancar, kemasan utuh' },
+            { id_masuk: 2, tanggal: '2026-05-09', ref: 'INV-202605-02', po: 'PO-202605-02', supplier: 'Toko Besi Maju', barang: 'Besi Beton 10mm', qty: 100, qc: 'Baik (Lolos QC)', keterangan: 'Besi lurus dan tidak berkarat' },
+            { id_masuk: 3, tanggal: '2026-05-08', ref: 'INV-202605-03', po: 'PO-202605-03', supplier: 'CV. Warna Abadi', barang: 'Cat Tembok Dulux', qty: 15, qc: 'Baik (Lolos QC)', keterangan: 'Segel kaleng rapat' }
         ]);
         
         this.get('ud_transaksi_keluar', [
-            { id_keluar: 1, tanggal: '2026-05-11', ref: 'OUT-202605-01', tujuan: 'Proyek Perumahan A', barang: 'Semen Gresik 50kg', qty: 20 },
-            { id_keluar: 2, tanggal: '2026-05-10', ref: 'OUT-202605-02', tujuan: 'Proyek Renovasi B', barang: 'Cat Tembok Dulux', qty: 5 },
-            { id_keluar: 3, tanggal: '2026-05-09', ref: 'OUT-202605-03', tujuan: 'Mandor C (Eceran)', barang: 'Paku Payung 5cm', qty: 100 }
+            { id_keluar: 1, tanggal: '2026-05-11', ref: 'OUT-202605-01', tujuan: 'Proyek Perumahan A', barang: 'Semen Gresik 50kg', qty: 20, tujuan_keluar: 'Penjualan / Distribusi', keterangan: 'Dikirim menggunakan truk armada' },
+            { id_keluar: 2, tanggal: '2026-05-10', ref: 'OUT-202605-02', tujuan: 'Proyek Renovasi B', barang: 'Cat Tembok Dulux', qty: 5, tujuan_keluar: 'Kebutuhan Produksi', keterangan: 'Pemakaian proyek interior' },
+            { id_keluar: 3, tanggal: '2026-05-09', ref: 'OUT-202605-03', tujuan: 'Mandor C (Eceran)', barang: 'Paku Payung 5cm', qty: 100, tujuan_keluar: 'Penjualan / Distribusi', keterangan: 'Penjualan retail langsung' }
         ]);
         
         this.get('ud_users', [
@@ -126,27 +126,14 @@ DB.init();
 
 let USER_SESSION = null;
 
-document.addEventListener('DOMContentLoaded', async function () {
-    // Cek Session (PHP Backend)
-    try {
-        const response = await fetch(BASE_URL + '/api/auth/me.php');
-        const data = await response.json();
-        if (data.status === 'success') {
-            USER_SESSION = data.data;
-        }
-    } catch (error) {
-        console.warn("Gagal mengecek session backend (PHP/Database mati), menggunakan local fallback:", error);
-    }
-
-    // Fallback ke LocalStorage jika backend offline
-    if (!USER_SESSION) {
-        const localSession = localStorage.getItem('ud_session');
-        if (localSession) {
-            try {
-                USER_SESSION = JSON.parse(localSession);
-            } catch (e) {
-                console.error("Gagal membaca session lokal:", e);
-            }
+document.addEventListener('DOMContentLoaded', function () {
+    // Membaca session lokal
+    const localSession = localStorage.getItem('ud_session');
+    if (localSession) {
+        try {
+            USER_SESSION = JSON.parse(localSession);
+        } catch (e) {
+            console.error("Gagal membaca session lokal:", e);
         }
     }
 
@@ -183,11 +170,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Logout Action
             const logoutBtn = dropdownMenu.querySelector('.logout');
             if (logoutBtn) {
-                logoutBtn.addEventListener('click', async function(e) {
+                logoutBtn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    try {
-                        await fetch(BASE_URL + '/api/auth/logout.php');
-                    } catch(err) {}
                     localStorage.removeItem('ud_session');
                     window.location.href = BASE_URL + '/views/auth/login.html';
                 });
@@ -245,7 +229,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     });
 
-    // Login Form Submit Logic (Fetch ke PHP API + Mock Mode)
+    // Login Form Submit Logic (Offline Mode)
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', function (e) {
@@ -260,8 +244,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             const usernameInput = formData.get('username');
             const passwordInput = formData.get('password');
 
-            // Fungsi pembantu untuk memproses mock login
-            const tryMockLogin = () => {
+            setTimeout(() => {
                 if ((usernameInput === 'admin' && passwordInput === 'admin123') || 
                     (usernameInput === 'budi_gudang' && passwordInput === 'budi123')) {
                     
@@ -280,7 +263,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     };
                     
                     localStorage.setItem('ud_session', JSON.stringify(mockSession));
-                    showToast('Login berhasil! (Mode Simulasi Offline)', 'success');
+                    showToast('Login berhasil! (Mode Offline)', 'success');
                     
                     setTimeout(() => {
                         if (role === 'Staf Gudang') {
@@ -289,59 +272,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                             window.location.href = BASE_URL + '/index.html';
                         }
                     }, 1000);
-                    return true;
-                }
-                return false;
-            };
-
-            fetch(BASE_URL + '/api/auth/login.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if(data.status === 'success') {
-                    // Simpan ke local juga agar backend-independent
-                    localStorage.setItem('ud_session', JSON.stringify({
-                        id_user: data.user.id_user || 1,
-                        username: usernameInput,
-                        nama_lengkap: data.user.nama,
-                        role: data.user.role
-                    }));
-                    showToast(data.message, 'success');
-                    setTimeout(() => {
-                        if (data.user.role === 'Staf Gudang' || data.user.role === 'Staff Gudang') {
-                            window.location.href = BASE_URL + '/views/barang/data_barang.html';
-                        } else {
-                            window.location.href = BASE_URL + '/index.html';
-                        }
-                    }, 1000);
                 } else {
-                    // Jika database online tapi user tidak ditemukan (database kosong / belum di-seed)
-                    // Coba gunakan mock credentials sebagai fallback
-                    if (tryMockLogin()) {
-                        return;
-                    }
-                    
-                    showToast(data.message, 'error');
+                    showToast('Username atau password salah!', 'error');
                     btn.innerHTML = originalText;
                     btn.style.opacity = '1';
                     btn.disabled = false;
                 }
-            })
-            .catch(error => {
-                console.warn("Koneksi API gagal, menggunakan simulasi offline:", error);
-                
-                // MOCK AUTHENTICATION FALLBACK
-                if (tryMockLogin()) {
-                    return;
-                } else {
-                    showToast('Username atau password salah! (Gunakan admin / admin123)', 'error');
-                    btn.innerHTML = originalText;
-                    btn.style.opacity = '1';
-                    btn.disabled = false;
-                }
-            });
+            }, 500);
         });
     }
 
@@ -388,7 +325,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     // ==========================================================
-    // RENDERING ENGINE (DYNAMIC TABLE LOOPS)
+    // RENDERING ENGINE (DYNAMIC TABLE LOOPS - OFFLINE STATE)
     // ==========================================================
 
     window.renderBarangTable = function(searchQuery = '', categoryFilter = '') {
@@ -406,7 +343,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
         
         if (filtered.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">Data barang tidak ditemukan</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">Data barang tidak ditemukan</td></tr>';
             return;
         }
         
@@ -438,15 +375,16 @@ document.addEventListener('DOMContentLoaded', async function () {
         masukTableBody.innerHTML = '';
         
         const filtered = masukList.filter(item => {
-            const matchesSearch = item.ref.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                  item.supplier.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                  item.barang.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesSearch = (item.ref && item.ref.toLowerCase().includes(searchQuery.toLowerCase())) || 
+                                  (item.po && item.po.toLowerCase().includes(searchQuery.toLowerCase())) || 
+                                  (item.supplier && item.supplier.toLowerCase().includes(searchQuery.toLowerCase())) || 
+                                  (item.barang && item.barang.toLowerCase().includes(searchQuery.toLowerCase()));
             const matchesDate = dateFilter === '' || item.tanggal === dateFilter;
             return matchesSearch && matchesDate;
         });
         
         if (filtered.length === 0) {
-            masukTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">Data transaksi masuk tidak ditemukan</td></tr>';
+            masukTableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">Data transaksi masuk tidak ditemukan</td></tr>';
             return;
         }
         
@@ -454,12 +392,14 @@ document.addEventListener('DOMContentLoaded', async function () {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${item.tanggal}</td>
+                <td style="font-weight: 600; font-family: monospace; color: var(--primary);">${item.po || '-'}</td>
                 <td style="font-weight: 500;">${item.ref}</td>
                 <td>${item.supplier}</td>
                 <td>${item.barang}</td>
-                <td><span class="badge badge-info" style="background-color: #d1fae5; color: #059669;">+ ${item.qty}</span></td>
+                <td><span class="badge" style="background-color: #d1fae5; color: #059669; font-weight: 600;">+ ${item.qty}</span></td>
+                <td><span class="badge ${item.qc && item.qc.includes('Baik') ? 'badge-success' : (item.qc && item.qc.includes('Rusak') ? 'badge-danger' : 'badge-warning')}">${item.qc || 'Baik (Lolos QC)'}</span></td>
                 <td>
-                    <button class="btn-icon btn-edit" onclick="showToast('No Ref: ' + '${item.ref}' + ' - Supplier: ' + '${item.supplier}', 'info')" title="Detail"><i class="fas fa-eye"></i></button>
+                    <button class="btn-icon btn-edit" onclick="showToast('PO: ' + '${item.po || '-'}' + ' | Ref: ' + '${item.ref}' + ' | QC: ' + '${item.qc || '-'}', 'info')" title="Detail"><i class="fas fa-eye"></i></button>
                     <button class="btn-icon btn-delete" onclick="deleteTransaksiMasuk(${item.id_masuk})" title="Hapus Data"><i class="fas fa-trash"></i></button>
                 </td>
             `;
@@ -475,15 +415,15 @@ document.addEventListener('DOMContentLoaded', async function () {
         keluarTableBody.innerHTML = '';
         
         const filtered = keluarList.filter(item => {
-            const matchesSearch = item.ref.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                  item.tujuan.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                  item.barang.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesSearch = (item.ref && item.ref.toLowerCase().includes(searchQuery.toLowerCase())) || 
+                                  (item.tujuan && item.tujuan.toLowerCase().includes(searchQuery.toLowerCase())) || 
+                                  (item.barang && item.barang.toLowerCase().includes(searchQuery.toLowerCase()));
             const matchesDate = dateFilter === '' || item.tanggal === dateFilter;
             return matchesSearch && matchesDate;
         });
         
         if (filtered.length === 0) {
-            keluarTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">Data transaksi keluar tidak ditemukan</td></tr>';
+            keluarTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Data transaksi keluar tidak ditemukan</td></tr>';
             return;
         }
         
@@ -494,9 +434,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                 <td style="font-weight: 500;">${item.ref}</td>
                 <td>${item.tujuan}</td>
                 <td>${item.barang}</td>
-                <td><span class="badge badge-info" style="background-color: #fee2e2; color: #e11d48;">- ${item.qty}</span></td>
+                <td><span class="badge" style="background-color: #fee2e2; color: #e11d48; font-weight: 600;">- ${item.qty}</span></td>
+                <td><span class="badge badge-info" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">${item.tujuan_keluar || 'Penjualan / Distribusi'}</span></td>
                 <td>
-                    <button class="btn-icon btn-edit" onclick="showToast('No Ref: ' + '${item.ref}' + ' - Tujuan: ' + '${item.tujuan}', 'info')" title="Detail"><i class="fas fa-eye"></i></button>
+                    <button class="btn-icon btn-edit" onclick="showToast('Ref: ' + '${item.ref}' + ' | Jenis: ' + '${item.tujuan_keluar || '-'}', 'info')" title="Detail"><i class="fas fa-eye"></i></button>
                     <button class="btn-icon btn-delete" onclick="deleteTransaksiKeluar(${item.id_keluar})" title="Hapus Data"><i class="fas fa-trash"></i></button>
                 </td>
             `;
@@ -526,13 +467,10 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
         
         filtered.forEach(item => {
-            // filter masuk & keluar by item and month
             const itemMasuk = masukList.filter(t => t.barang === item.nama_barang && (monthFilter === '' || t.tanggal.startsWith(monthFilter)));
             const itemKeluar = keluarList.filter(t => t.barang === item.nama_barang && (monthFilter === '' || t.tanggal.startsWith(monthFilter)));
-            
             const masukQty = itemMasuk.reduce((sum, t) => sum + parseInt(t.qty || 0), 0);
             const keluarQty = itemKeluar.reduce((sum, t) => sum + parseInt(t.qty || 0), 0);
-            
             const akhir = parseInt(item.stok || 0);
             const awal = akhir - masukQty + keluarQty;
             
@@ -595,7 +533,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         const totalBarangCount = barangList.length;
         const totalMasukQty = masukList.reduce((sum, t) => sum + parseInt(t.qty || 0), 0);
         const totalKeluarQty = keluarList.reduce((sum, t) => sum + parseInt(t.qty || 0), 0);
-        const stokMenipisList = barangList.filter(item => item.stok <= 50);
+        const stokMenipisList = barangList.filter(item => item.stok <= (item.stok_minimum || 50));
         const stokMenipisCount = stokMenipisList.length;
         
         const cardElements = cards.querySelectorAll('.card');
@@ -696,10 +634,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     };
 
-    // ==========================================================
-    // INITIAL LOAD RENDERING AND FILTER BINDINGS
-    // ==========================================================
-
+    // Bindings untuk halaman
     if (document.getElementById('barangTableBody')) {
         renderBarangTable();
         const searchInput = document.querySelector('.search-box input');
@@ -763,7 +698,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         renderDashboard();
     }
 
-    // User Profile Dropdown
+    // User Profile Dropdown Toggle
     const userProfileBtn = document.getElementById('userProfileBtn');
     const userDropdownMenu = document.getElementById('userDropdownMenu');
 
@@ -773,7 +708,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             userDropdownMenu.classList.toggle('active');
         });
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', function(e) {
             if (!userDropdownMenu.contains(e.target) && e.target !== userProfileBtn && !userProfileBtn.contains(e.target)) {
                 userDropdownMenu.classList.remove('active');
@@ -783,7 +717,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 });
 
 // ==========================================================
-// CRUD OPERATIONS ENGINE (INTERACTIVE CLIENT-SIDE ACTIONS)
+// CRUD OPERATIONS ENGINE (INTERACTIVE CLIENT-SIDE ACTIONS - OFFLINE)
 // ==========================================================
 
 window.saveBarang = function() {
@@ -841,7 +775,7 @@ window.saveBarang = function() {
                 barangList[index].lokasi_rak = lokasiRak;
                 barangList[index].satuan = satuan;
                 DB.set('ud_barang', barangList);
-                showToast('Data barang berhasil diperbarui!', 'success');
+                showToast('Data barang diperbarui secara lokal! (Offline)', 'success');
             }
         } else {
             if (barangList.some(b => b.kode_barang === kodeBarang)) {
@@ -867,13 +801,12 @@ window.saveBarang = function() {
                 stok_minimum: stokBarang <= 100 ? 30 : 50
             });
             DB.set('ud_barang', barangList);
-            showToast('Data barang berhasil ditambahkan!', 'success');
+            showToast('Data barang ditambahkan secara lokal! (Offline)', 'success');
         }
         
         closeModal();
         btn.innerHTML = originalText;
         btn.disabled = false;
-        
         renderBarangTable();
     }, 500);
 };
@@ -883,7 +816,7 @@ window.deleteBarang = function(kodeBarang) {
         const barangList = DB.get('ud_barang', []);
         const filtered = barangList.filter(b => b.kode_barang !== kodeBarang);
         DB.set('ud_barang', filtered);
-        showToast('Data barang berhasil dihapus!', 'success');
+        showToast('Data barang dihapus secara lokal! (Offline)', 'success');
         renderBarangTable();
     }
 };
@@ -915,7 +848,7 @@ window.saveTransaksi = function() {
         const targetBarang = barangList.find(b => b.nama_barang === namaBarang);
         
         if (!targetBarang) {
-            showToast('Barang tidak valid!', 'error');
+            showToast('Barang tidak ditemukan!', 'error');
             btn.innerHTML = originalText;
             btn.disabled = false;
             return;
@@ -923,23 +856,29 @@ window.saveTransaksi = function() {
         
         if (inputMasuk) {
             const qty = parseInt(inputMasuk.value || 0);
+            const po = document.getElementById('noPO').value.trim();
             const supplier = document.getElementById('supplier').value.trim();
+            const qc = document.getElementById('kondisiQC').value;
+            const keterangan = document.getElementById('keterangan').value.trim();
             const masukList = DB.get('ud_transaksi_masuk', []);
             
             masukList.push({
                 id_masuk: masukList.length > 0 ? Math.max(...masukList.map(t => t.id_masuk)) + 1 : 1,
                 tanggal: tanggal,
                 ref: ref,
+                po: po,
                 supplier: supplier,
                 barang: namaBarang,
-                qty: qty
+                qty: qty,
+                qc: qc,
+                keterangan: keterangan
             });
             
             targetBarang.stok += qty;
             
             DB.set('ud_transaksi_masuk', masukList);
             DB.set('ud_barang', barangList);
-            showToast('Transaksi Barang Masuk berhasil disimpan!', 'success');
+            showToast('Transaksi disimpan secara lokal! (Offline)', 'success');
             
             closeModalTransaksi();
             renderBarangMasukTable();
@@ -947,6 +886,8 @@ window.saveTransaksi = function() {
         } else if (inputKeluar) {
             const qty = parseInt(inputKeluar.value || 0);
             const tujuan = document.getElementById('tujuanProyek').value.trim();
+            const tujuan_keluar = document.getElementById('tujuanPengeluaran').value;
+            const keterangan = document.getElementById('keterangan').value.trim();
             const keluarList = DB.get('ud_transaksi_keluar', []);
             
             if (targetBarang.stok < qty) {
@@ -962,14 +903,16 @@ window.saveTransaksi = function() {
                 ref: ref,
                 tujuan: tujuan,
                 barang: namaBarang,
-                qty: qty
+                qty: qty,
+                tujuan_keluar: tujuan_keluar,
+                keterangan: keterangan
             });
             
             targetBarang.stok -= qty;
             
             DB.set('ud_transaksi_keluar', keluarList);
             DB.set('ud_barang', barangList);
-            showToast('Transaksi Barang Keluar berhasil disimpan!', 'success');
+            showToast('Transaksi disimpan secara lokal! (Offline)', 'success');
             
             closeModalTransaksi();
             renderBarangKeluarTable();
@@ -994,7 +937,7 @@ window.deleteTransaksiMasuk = function(id) {
             
             const filtered = masukList.filter(x => x.id_masuk !== id);
             DB.set('ud_transaksi_masuk', filtered);
-            showToast('Transaksi berhasil dihapus dan stok disesuaikan!', 'success');
+            showToast('Transaksi berhasil dihapus secara lokal! (Offline)', 'success');
             renderBarangMasukTable();
         }
     }
@@ -1014,7 +957,7 @@ window.deleteTransaksiKeluar = function(id) {
             
             const filtered = keluarList.filter(x => x.id_keluar !== id);
             DB.set('ud_transaksi_keluar', filtered);
-            showToast('Transaksi berhasil dihapus dan stok disesuaikan!', 'success');
+            showToast('Transaksi berhasil dihapus secara lokal! (Offline)', 'success');
             renderBarangKeluarTable();
         }
     }
@@ -1048,7 +991,7 @@ window.simpanAkun = function(btn) {
                 userList[index].username = username;
                 userList[index].role = role;
                 DB.set('ud_users', userList);
-                showToast('Pengguna berhasil diperbarui!', 'success');
+                showToast('Pengguna berhasil diperbarui secara lokal! (Offline)', 'success');
             }
         } else {
             if (userList.some(u => u.username === username)) {
@@ -1065,13 +1008,12 @@ window.simpanAkun = function(btn) {
                 role: role
             });
             DB.set('ud_users', userList);
-            showToast('Pengguna baru berhasil ditambahkan!', 'success');
+            showToast('Pengguna baru berhasil ditambahkan secara lokal! (Offline)', 'success');
         }
         
         closeModal();
         btn.innerHTML = originalText;
         btn.disabled = false;
-        
         renderUserTable();
     }, 500);
 };
@@ -1081,7 +1023,7 @@ window.deleteUser = function(id) {
         const userList = DB.get('ud_users', []);
         const filtered = userList.filter(u => u.id != id);
         DB.set('ud_users', filtered);
-        showToast('Pengguna berhasil dihapus!', 'success');
+        showToast('Pengguna berhasil dihapus secara lokal! (Offline)', 'success');
         renderUserTable();
     }
 };
@@ -1122,6 +1064,22 @@ window.openModal = function(action, id = null) {
                 opt.textContent = `${item.kode_barang} - ${item.nama_barang} (Stok: ${item.stok})`;
                 selectBarang.appendChild(opt);
             });
+            
+            // Auto-populate lokasiPenempatan / lokasiAsal ketika barang dipilih
+            selectBarang.onchange = function() {
+                const selectedVal = this.value;
+                const targetBarang = barangList.find(b => b.nama_barang === selectedVal);
+                const lokasiPenempatan = document.getElementById('lokasiPenempatan');
+                const lokasiAsal = document.getElementById('lokasiAsal');
+                
+                if (targetBarang) {
+                    if (lokasiPenempatan) lokasiPenempatan.value = targetBarang.lokasi_rak || '-';
+                    if (lokasiAsal) lokasiAsal.value = targetBarang.lokasi_rak || '-';
+                } else {
+                    if (lokasiPenempatan) lokasiPenempatan.value = '';
+                    if (lokasiAsal) lokasiAsal.value = '';
+                }
+            };
         }
 
         if (action === 'add') {
@@ -1245,7 +1203,6 @@ window.showQrCode = function(kode, nama) {
         qrNama.innerText = nama;
         qrKode.innerText = kode;
         
-        // Menggunakan API QR Server (Gratis, instan, & andal)
         const qrDataString = encodeURIComponent(`Kode: ${kode}\nNama: ${nama}\nSistem Inventaris UD Citra Perdana`);
         qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrDataString}`;
         
@@ -1267,7 +1224,6 @@ window.openScannerSim = function() {
     if (modal && container) {
         modal.style.display = 'flex';
         
-        // Ambil data barang aktif dari DB
         const barangList = DB.get('ud_barang', []);
         container.innerHTML = '';
         
@@ -1276,7 +1232,6 @@ window.openScannerSim = function() {
             return;
         }
         
-        // Render barang list sebagai stiker label QR cepat
         barangList.forEach(item => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'activity-item';
@@ -1299,7 +1254,6 @@ window.openScannerSim = function() {
                 </div>
             `;
             
-            // Hover effect
             itemDiv.onmouseover = () => {
                 itemDiv.style.backgroundColor = 'rgba(99, 102, 241, 0.05)';
                 itemDiv.style.borderColor = '#6366f1';
@@ -1309,7 +1263,6 @@ window.openScannerSim = function() {
                 itemDiv.style.borderColor = 'var(--border-color)';
             };
             
-            // Onclick trigger pemindaian
             itemDiv.onclick = () => {
                 triggerScanSuccess(item.nama_barang, item.kode_barang);
             };
@@ -1330,17 +1283,16 @@ window.triggerScanSuccess = function(nama, kode) {
     const selectBarang = document.getElementById('pilihBarang');
     if (!selectBarang) return;
     
-    // 1. Simulasikan Beep Audio menggunakan Web Audio API
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = oscillator || audioCtx.createOscillator();
+        const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
         
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         
         oscillator.type = 'sine';
-        oscillator.frequency.value = 1200; // Frekuensi Bip scanner
+        oscillator.frequency.value = 1200;
         gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
         
         oscillator.start();
@@ -1351,7 +1303,6 @@ window.triggerScanSuccess = function(nama, kode) {
         console.warn("Web Audio API not supported, skipping beep sound");
     }
     
-    // 2. Mainkan Animasi Berhasil di Scanner Modal
     const scannerIcon = document.getElementById('scannerIcon');
     if (scannerIcon) {
         scannerIcon.innerHTML = `
@@ -1360,7 +1311,6 @@ window.triggerScanSuccess = function(nama, kode) {
         `;
     }
     
-    // 3. Isi form otomatis dan tutup scanner setelah jeda kecil
     setTimeout(() => {
         let found = false;
         for (let i = 0; i < selectBarang.options.length; i++) {
@@ -1382,7 +1332,6 @@ window.triggerScanSuccess = function(nama, kode) {
         
         closeScannerSim();
         
-        // Reset scanner modal icon
         if (scannerIcon) {
             scannerIcon.innerHTML = `
                 <i class="fas fa-qrcode fa-4x" style="margin-bottom: 10px; animation: pulse 1.5s infinite;"></i>
