@@ -110,11 +110,13 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Kode</th>
+                                <th>Kode (SKU)</th>
                                 <th>Nama Barang</th>
                                 <th>Kategori</th>
+                                <th>Lokasi Rak</th>
                                 <th>Stok</th>
-                                <th>Harga/Satuan</th>
+                                <th>Harga Beli</th>
+                                <th>Harga Jual</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -137,16 +139,30 @@
             </div>
             <div class="modal-body">
                 <form id="formBarang">
-                    <div class="input-group">
-                        <label>Kode Barang</label>
-                        <div class="input-wrapper">
-                            <input type="text" id="kodeBarang" placeholder="Contoh: BRG-001" required>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="input-group">
+                            <label>Kode Barang (SKU)</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="kodeBarang" placeholder="Contoh: BRG-001" required>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Lokasi Rak / Zona</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="lokasiRak" placeholder="Contoh: Rak A-1" required>
+                            </div>
                         </div>
                     </div>
                     <div class="input-group">
                         <label>Nama Barang</label>
                         <div class="input-wrapper">
                             <input type="text" id="namaBarang" placeholder="Masukkan nama barang" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Deskripsi Barang</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="deskripsiBarang" placeholder="Keterangan / spesifikasi detail barang..." required>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -169,11 +185,34 @@
                             </div>
                         </div>
                     </div>
-                    <div class="input-group">
-                        <label>Harga per Satuan</label>
-                        <div class="input-wrapper">
-                            <i class="icon-left" style="font-style: normal; font-weight: 600;">Rp</i>
-                            <input type="number" id="hargaBarang" placeholder="0" min="0" required>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="input-group">
+                            <label>Berat</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="beratBarang" placeholder="Contoh: 50 kg" required>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Dimensi (P x L x T)</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="dimensiBarang" placeholder="Contoh: 60x40x15 cm" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="input-group">
+                            <label>Harga Beli per Satuan</label>
+                            <div class="input-wrapper">
+                                <i class="icon-left" style="font-style: normal; font-weight: 600;">Rp</i>
+                                <input type="number" id="hargaBeliBarang" placeholder="0" min="0" required>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Harga Jual per Satuan</label>
+                            <div class="input-wrapper">
+                                <i class="icon-left" style="font-style: normal; font-weight: 600;">Rp</i>
+                                <input type="number" id="hargaBarang" placeholder="0" min="0" required>
+                            </div>
                         </div>
                     </div>
                 </form>

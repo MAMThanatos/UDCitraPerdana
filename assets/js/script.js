@@ -86,12 +86,20 @@ const DB = {
             localStorage.removeItem('ud_session');
         }
 
+        // Melakukan migrasi database barang jika tidak ada atribut baru (seperti harga_beli)
+        const currentBarang = localStorage.getItem('ud_barang');
+        if (currentBarang && !currentBarang.includes('harga_beli')) {
+            localStorage.removeItem('ud_barang');
+            localStorage.removeItem('ud_transaksi_masuk');
+            localStorage.removeItem('ud_transaksi_keluar');
+        }
+
         this.get('ud_barang', [
-            { id_barang: 1, kode_barang: 'BRG-001', nama_barang: 'Semen Gresik 50kg', kategori: 'Material Dasar', stok: 150, satuan: 'Zak', harga: 65000 },
-            { id_barang: 2, kode_barang: 'BRG-002', nama_barang: 'Paku Payung 5cm', kategori: 'Aksesoris', stok: 500, satuan: 'Kotak', harga: 15000 },
-            { id_barang: 3, kode_barang: 'BRG-003', nama_barang: 'Cat Tembok Dulux', kategori: 'Finishing', stok: 30, satuan: 'Pail', harga: 150000 },
-            { id_barang: 4, kode_barang: 'BRG-004', nama_barang: 'Besi Beton 10mm', kategori: 'Material Dasar', stok: 200, satuan: 'Batang', harga: 85000 },
-            { id_barang: 5, kode_barang: 'BRG-005', nama_barang: 'Pipa PVC 3/4 inch', kategori: 'Plumbing', stok: 120, satuan: 'Batang', harga: 25000 }
+            { id_barang: 1, kode_barang: 'BRG-001', nama_barang: 'Semen Gresik 50kg', kategori: 'Material Dasar', stok: 150, satuan: 'Zak', harga: 65000, harga_beli: 60000, deskripsi: 'Semen Gresik PPC berkualitas tinggi untuk konstruksi beton', berat: '50 kg', dimensi: '60x45x15 cm', lokasi_rak: 'A-1', stok_minimum: 50 },
+            { id_barang: 2, kode_barang: 'BRG-002', nama_barang: 'Paku Payung 5cm', kategori: 'Aksesoris', stok: 500, satuan: 'Kotak', harga: 15000, harga_beli: 12000, deskripsi: 'Paku payung galvanis antikarat isi 100 pcs', berat: '0.5 kg', dimensi: '10x10x5 cm', lokasi_rak: 'B-2', stok_minimum: 100 },
+            { id_barang: 3, kode_barang: 'BRG-003', nama_barang: 'Cat Tembok Dulux', kategori: 'Finishing', stok: 30, satuan: 'Pail', harga: 150000, harga_beli: 135000, deskripsi: 'Cat tembok interior Dulux warna putih cerah', berat: '20 kg', dimensi: '30x30x40 cm', lokasi_rak: 'C-1', stok_minimum: 10 },
+            { id_barang: 4, kode_barang: 'BRG-004', nama_barang: 'Besi Beton 10mm', kategori: 'Material Dasar', stok: 200, satuan: 'Batang', harga: 85000, harga_beli: 78000, deskripsi: 'Besi beton ulir standar SNI panjang 12 meter', berat: '7.4 kg', dimensi: '1200x1x1 cm', lokasi_rak: 'A-4', stok_minimum: 50 },
+            { id_barang: 5, kode_barang: 'BRG-005', nama_barang: 'Pipa PVC 3/4 inch', kategori: 'Plumbing', stok: 120, satuan: 'Batang', harga: 25000, harga_beli: 20000, deskripsi: 'Pipa PVC Wavin AW tebal panjang 4 meter', berat: '1.2 kg', dimensi: '400x2.5x2.5 cm', lokasi_rak: 'D-3', stok_minimum: 30 }
         ]);
         
         this.get('ud_transaksi_masuk', [
@@ -408,7 +416,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                 <td>${item.kode_barang}</td>
                 <td style="font-weight: 500;">${item.nama_barang}</td>
                 <td><span class="badge badge-info">${item.kategori}</span></td>
-                <td>${item.stok}</td>
+                <td><span class="badge" style="background: rgba(99, 102, 241, 0.1); color: #6366f1; font-weight: 600; font-family: monospace;">${item.lokasi_rak || '-'}</span></td>
+                <td><strong style="color: ${item.stok <= (item.stok_minimum || 50) ? '#ef4444' : 'inherit'};">${item.stok}</strong></td>
+                <td>Rp ${(item.harga_beli || 0).toLocaleString('id-ID')}</td>
                 <td>Rp ${item.harga.toLocaleString('id-ID')}</td>
                 <td>
                     <button class="btn-icon" style="color: #6366f1; background: rgba(99, 102, 241, 0.1);" onclick="showQrCode('${item.kode_barang}', '${item.nama_barang}')" title="Tampilkan QR Code"><i class="fas fa-qrcode"></i></button>
@@ -786,9 +796,14 @@ window.saveBarang = function() {
     }
     
     const kodeBarang = document.getElementById('kodeBarang').value.trim();
+    const lokasiRak = document.getElementById('lokasiRak').value.trim();
     const namaBarang = document.getElementById('namaBarang').value.trim();
+    const deskripsiBarang = document.getElementById('deskripsiBarang').value.trim();
     const kategoriBarang = document.getElementById('kategoriBarang').value;
     const stokBarang = parseInt(document.getElementById('stokBarang').value || 0);
+    const beratBarang = document.getElementById('beratBarang').value.trim();
+    const dimensiBarang = document.getElementById('dimensiBarang').value.trim();
+    const hargaBeliBarang = parseInt(document.getElementById('hargaBeliBarang').value || 0);
     const hargaBarang = parseInt(document.getElementById('hargaBarang').value || 0);
     
     let satuan = 'Pcs';
@@ -819,6 +834,11 @@ window.saveBarang = function() {
                 barangList[index].nama_barang = namaBarang;
                 barangList[index].kategori = kategoriBarang;
                 barangList[index].harga = hargaBarang;
+                barangList[index].harga_beli = hargaBeliBarang;
+                barangList[index].deskripsi = deskripsiBarang;
+                barangList[index].berat = beratBarang;
+                barangList[index].dimensi = dimensiBarang;
+                barangList[index].lokasi_rak = lokasiRak;
                 barangList[index].satuan = satuan;
                 DB.set('ud_barang', barangList);
                 showToast('Data barang berhasil diperbarui!', 'success');
@@ -838,7 +858,13 @@ window.saveBarang = function() {
                 kategori: kategoriBarang,
                 stok: stokBarang,
                 satuan: satuan,
-                harga: hargaBarang
+                harga: hargaBarang,
+                harga_beli: hargaBeliBarang,
+                deskripsi: deskripsiBarang,
+                berat: beratBarang,
+                dimensi: dimensiBarang,
+                lokasi_rak: lokasiRak,
+                stok_minimum: stokBarang <= 100 ? 30 : 50
             });
             DB.set('ud_barang', barangList);
             showToast('Data barang berhasil ditambahkan!', 'success');
@@ -1113,10 +1139,15 @@ window.openModal = function(action, id = null) {
             if (item && form) {
                 document.getElementById('kodeBarang').value = item.kode_barang;
                 document.getElementById('kodeBarang').readOnly = true;
+                document.getElementById('lokasiRak').value = item.lokasi_rak || '';
                 document.getElementById('namaBarang').value = item.nama_barang;
+                document.getElementById('deskripsiBarang').value = item.deskripsi || '';
                 document.getElementById('kategoriBarang').value = item.kategori;
                 document.getElementById('stokBarang').value = item.stok;
                 document.getElementById('stokBarang').readOnly = true;
+                document.getElementById('beratBarang').value = item.berat || '';
+                document.getElementById('dimensiBarang').value = item.dimensi || '';
+                document.getElementById('hargaBeliBarang').value = item.harga_beli || 0;
                 document.getElementById('hargaBarang').value = item.harga;
                 form.setAttribute('data-edit-id', id);
             }
