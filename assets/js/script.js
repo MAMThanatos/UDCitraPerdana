@@ -636,11 +636,31 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     };
 
-    window.renderUserTable = function(searchQuery = '') {
+    window.renderUserTable = async function(searchQuery = '') {
         const manajemenAkunTableBody = document.getElementById('manajemenAkunTableBody');
         if (!manajemenAkunTableBody) return;
         
-        const userList = DB.get('ud_users', []);
+        let userList = [];
+        let isOffline = false;
+        
+        try {
+            const response = await fetch(BASE_URL + '/api/user/read.php');
+            const data = await response.json();
+            if (data.status === 'success') {
+                userList = data.data;
+                DB.set('ud_users', userList); // sync local cache
+            } else {
+                isOffline = true;
+            }
+        } catch (e) {
+            console.warn("Gagal terhubung ke API pengguna, menggunakan cache lokal:", e);
+            isOffline = true;
+        }
+        
+        if (isOffline) {
+            userList = DB.get('ud_users', []);
+        }
+        
         manajemenAkunTableBody.innerHTML = '';
         
         const filtered = userList.filter(user => {
@@ -1281,15 +1301,46 @@ window.simpanAkun = function(btn) {
     const nama = document.getElementById('nama_lengkap').value.trim();
     const username = document.getElementById('username').value.trim();
     const role = document.getElementById('role').value;
+    const password = document.getElementById('password') ? document.getElementById('password').value : '';
     
-    const userList = DB.get('ud_users', []);
     const editId = form.getAttribute('data-edit-id');
-    
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Menyimpan...';
     btn.disabled = true;
-    
-    setTimeout(() => {
+
+    // Siapkan FormData
+    const formData = new FormData();
+    if (editId) {
+        formData.append('id_user', editId);
+    }
+    formData.append('nama_lengkap', nama);
+    formData.append('username', username);
+    formData.append('role', role);
+    if (password !== '') {
+        formData.append('password', password);
+    }
+
+    fetch(BASE_URL + '/api/user/save.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showToast(data.message, 'success');
+            closeModal();
+            renderUserTable();
+        } else {
+            showToast(data.message, 'error');
+        }
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    })
+    .catch(error => {
+        console.warn("Gagal terhubung ke API user, menggunakan fallback offline local:", error);
+        
+        // --- FALLBACK OFFLINE LOCALSTORAGE ---
+        const userList = DB.get('ud_users', []);
         if (editId) {
             const index = userList.findIndex(u => u.id == editId);
             if (index !== -1) {
@@ -1321,16 +1372,35 @@ window.simpanAkun = function(btn) {
         btn.innerHTML = originalText;
         btn.disabled = false;
         renderUserTable();
-    }, 500);
+    });
 };
 
 window.deleteUser = function(id) {
     if (confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) {
-        const userList = DB.get('ud_users', []);
-        const filtered = userList.filter(u => u.id != id);
-        DB.set('ud_users', filtered);
-        showToast('Pengguna berhasil dihapus secara lokal! (Offline)', 'success');
-        renderUserTable();
+        const formData = new FormData();
+        formData.append('id_user', id);
+        
+        fetch(BASE_URL + '/api/user/delete.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showToast(data.message, 'success');
+                renderUserTable();
+            } else {
+                showToast(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.warn("Gagal menghubungi API pengguna, menggunakan fallback offline local:", error);
+            const userList = DB.get('ud_users', []);
+            const filtered = userList.filter(u => u.id != id);
+            DB.set('ud_users', filtered);
+            showToast('Pengguna berhasil dihapus secara lokal! (Offline)', 'success');
+            renderUserTable();
+        });
     }
 };
 
