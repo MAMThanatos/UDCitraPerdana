@@ -126,14 +126,27 @@ DB.init();
 
 let USER_SESSION = null;
 
-document.addEventListener('DOMContentLoaded', function () {
-    // Membaca session lokal
-    const localSession = localStorage.getItem('ud_session');
-    if (localSession) {
-        try {
-            USER_SESSION = JSON.parse(localSession);
-        } catch (e) {
-            console.error("Gagal membaca session lokal:", e);
+document.addEventListener('DOMContentLoaded', async function () {
+    // Cek Session (PHP Backend)
+    try {
+        const response = await fetch(BASE_URL + '/api/auth/me.php');
+        const data = await response.json();
+        if (data.status === 'success') {
+            USER_SESSION = data.data;
+        }
+    } catch (error) {
+        console.warn("Gagal mengecek session backend (PHP/Database mati), menggunakan local fallback:", error);
+    }
+
+    // Fallback ke LocalStorage jika backend offline
+    if (!USER_SESSION) {
+        const localSession = localStorage.getItem('ud_session');
+        if (localSession) {
+            try {
+                USER_SESSION = JSON.parse(localSession);
+            } catch (e) {
+                console.error("Gagal membaca session lokal:", e);
+            }
         }
     }
 
@@ -170,8 +183,11 @@ document.addEventListener('DOMContentLoaded', function () {
             // Logout Action
             const logoutBtn = dropdownMenu.querySelector('.logout');
             if (logoutBtn) {
-                logoutBtn.addEventListener('click', function(e) {
+                logoutBtn.addEventListener('click', async function(e) {
                     e.preventDefault();
+                    try {
+                        await fetch(BASE_URL + '/api/auth/logout.php');
+                    } catch(err) {}
                     localStorage.removeItem('ud_session');
                     window.location.href = BASE_URL + '/views/auth/login.html';
                 });
@@ -229,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Login Form Submit Logic (Offline Mode)
+    // Login Form Submit Logic (Fetch ke PHP API + Mock Mode)
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', function (e) {
@@ -244,7 +260,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const usernameInput = formData.get('username');
             const passwordInput = formData.get('password');
 
-            setTimeout(() => {
+            // Fungsi pembantu untuk memproses mock login jika API gagal
+            const tryMockLogin = () => {
                 if ((usernameInput === 'admin' && passwordInput === 'admin123') || 
                     (usernameInput === 'budi_gudang' && passwordInput === 'budi123')) {
                     
@@ -263,7 +280,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     };
                     
                     localStorage.setItem('ud_session', JSON.stringify(mockSession));
-                    showToast('Login berhasil! (Mode Offline)', 'success');
+                    showToast('Login berhasil! (Mode Simulasi Offline)', 'success');
                     
                     setTimeout(() => {
                         if (role === 'Staf Gudang') {
@@ -272,13 +289,55 @@ document.addEventListener('DOMContentLoaded', function () {
                             window.location.href = BASE_URL + '/index.html';
                         }
                     }, 1000);
+                    return true;
+                }
+                return false;
+            };
+
+            fetch(BASE_URL + '/api/auth/login.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Simpan ke local storage juga agar backend-independent
+                    localStorage.setItem('ud_session', JSON.stringify({
+                        id_user: data.user.id_user || 1,
+                        username: usernameInput,
+                        nama_lengkap: data.user.nama,
+                        role: data.user.role
+                    }));
+                    showToast(data.message, 'success');
+                    setTimeout(() => {
+                        if (data.user.role === 'Staf Gudang' || data.user.role === 'Staff Gudang') {
+                            window.location.href = BASE_URL + '/views/barang/data_barang.html';
+                        } else {
+                            window.location.href = BASE_URL + '/index.html';
+                        }
+                    }, 1000);
                 } else {
-                    showToast('Username atau password salah!', 'error');
+                    // Coba mock login jika database kosong
+                    if (tryMockLogin()) {
+                        return;
+                    }
+                    showToast(data.message, 'error');
                     btn.innerHTML = originalText;
                     btn.style.opacity = '1';
                     btn.disabled = false;
                 }
-            }, 500);
+            })
+            .catch(error => {
+                console.warn("Koneksi API gagal, menggunakan simulasi offline:", error);
+                if (tryMockLogin()) {
+                    return;
+                } else {
+                    showToast('Username atau password salah! (Gunakan admin / admin123)', 'error');
+                    btn.innerHTML = originalText;
+                    btn.style.opacity = '1';
+                    btn.disabled = false;
+                }
+            });
         });
     }
 
