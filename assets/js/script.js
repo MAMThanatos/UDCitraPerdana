@@ -440,11 +440,25 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     };
 
-    window.renderBarangMasukTable = function(searchQuery = '', dateFilter = '') {
+    window.renderBarangMasukTable = async function(searchQuery = '', dateFilter = '') {
         const masukTableBody = document.getElementById('barangMasukTableBody');
         if (!masukTableBody) return;
         
-        const masukList = DB.get('ud_transaksi_masuk', []);
+        let masukList = [];
+        try {
+            const response = await fetch(BASE_URL + '/api/transaksi/masuk.php');
+            const data = await response.json();
+            if (data.status === 'success') {
+                masukList = data.data;
+                DB.set('ud_transaksi_masuk', masukList); // Sinkronisasi cache
+            } else {
+                masukList = DB.get('ud_transaksi_masuk', []);
+            }
+        } catch (e) {
+            console.warn("Gagal terhubung ke API transaksi masuk, menggunakan cache lokal:", e);
+            masukList = DB.get('ud_transaksi_masuk', []);
+        }
+        
         masukTableBody.innerHTML = '';
         
         const filtered = masukList.filter(item => {
@@ -480,11 +494,25 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     };
 
-    window.renderBarangKeluarTable = function(searchQuery = '', dateFilter = '') {
+    window.renderBarangKeluarTable = async function(searchQuery = '', dateFilter = '') {
         const keluarTableBody = document.getElementById('barangKeluarTableBody');
         if (!keluarTableBody) return;
         
-        const keluarList = DB.get('ud_transaksi_keluar', []);
+        let keluarList = [];
+        try {
+            const response = await fetch(BASE_URL + '/api/transaksi/keluar.php');
+            const data = await response.json();
+            if (data.status === 'success') {
+                keluarList = data.data;
+                DB.set('ud_transaksi_keluar', keluarList); // Sinkronisasi cache
+            } else {
+                keluarList = DB.get('ud_transaksi_keluar', []);
+            }
+        } catch (e) {
+            console.warn("Gagal terhubung ke API transaksi keluar, menggunakan cache lokal:", e);
+            keluarList = DB.get('ud_transaksi_keluar', []);
+        }
+        
         keluarTableBody.innerHTML = '';
         
         const filtered = keluarList.filter(item => {
@@ -973,8 +1001,71 @@ window.saveTransaksi = function() {
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Menyimpan...';
     btn.disabled = true;
-    
-    setTimeout(() => {
+
+    // Siapkan data untuk API
+    const formData = new FormData();
+    formData.append('tanggal', tanggal);
+    formData.append('ref', ref);
+    formData.append('barang', namaBarang);
+
+    let apiUrl = '';
+    let isMasuk = false;
+    let qty = 0;
+
+    if (inputMasuk) {
+        isMasuk = true;
+        qty = parseInt(inputMasuk.value || 0);
+        const po = document.getElementById('noPO').value.trim();
+        const supplier = document.getElementById('supplier').value.trim();
+        const qc = document.getElementById('kondisiQC').value;
+        const keterangan = document.getElementById('keterangan').value.trim();
+
+        formData.append('qty', qty);
+        formData.append('po', po);
+        formData.append('supplier', supplier);
+        formData.append('qc', qc);
+        formData.append('keterangan', keterangan);
+
+        apiUrl = BASE_URL + '/api/transaksi/masuk.php';
+    } else if (inputKeluar) {
+        isMasuk = false;
+        qty = parseInt(inputKeluar.value || 0);
+        const tujuan = document.getElementById('tujuanProyek').value.trim();
+        const tujuan_keluar = document.getElementById('tujuanPengeluaran').value;
+        const keterangan = document.getElementById('keterangan').value.trim();
+
+        formData.append('qty', qty);
+        formData.append('tujuan', tujuan);
+        formData.append('tujuan_keluar', tujuan_keluar);
+        formData.append('keterangan', keterangan);
+
+        apiUrl = BASE_URL + '/api/transaksi/keluar.php';
+    }
+
+    fetch(apiUrl, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showToast(data.message, 'success');
+            closeModalTransaksi();
+            if (isMasuk) {
+                renderBarangMasukTable();
+            } else {
+                renderBarangKeluarTable();
+            }
+        } else {
+            showToast(data.message, 'error');
+        }
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    })
+    .catch(error => {
+        console.warn("Gagal terhubung ke API Transaksi, menggunakan fallback offline local:", error);
+        
+        // --- FALLBACK OFFLINE LOCALSTORAGE ---
         const barangList = DB.get('ud_barang', []);
         const targetBarang = barangList.find(b => b.nama_barang === namaBarang);
         
@@ -985,8 +1076,7 @@ window.saveTransaksi = function() {
             return;
         }
         
-        if (inputMasuk) {
-            const qty = parseInt(inputMasuk.value || 0);
+        if (isMasuk) {
             const po = document.getElementById('noPO').value.trim();
             const supplier = document.getElementById('supplier').value.trim();
             const qc = document.getElementById('kondisiQC').value;
@@ -1010,12 +1100,9 @@ window.saveTransaksi = function() {
             DB.set('ud_transaksi_masuk', masukList);
             DB.set('ud_barang', barangList);
             showToast('Transaksi disimpan secara lokal! (Offline)', 'success');
-            
             closeModalTransaksi();
             renderBarangMasukTable();
-            
-        } else if (inputKeluar) {
-            const qty = parseInt(inputKeluar.value || 0);
+        } else {
             const tujuan = document.getElementById('tujuanProyek').value.trim();
             const tujuan_keluar = document.getElementById('tujuanPengeluaran').value;
             const keterangan = document.getElementById('keterangan').value.trim();
@@ -1044,53 +1131,94 @@ window.saveTransaksi = function() {
             DB.set('ud_transaksi_keluar', keluarList);
             DB.set('ud_barang', barangList);
             showToast('Transaksi disimpan secara lokal! (Offline)', 'success');
-            
             closeModalTransaksi();
             renderBarangKeluarTable();
         }
         
         btn.innerHTML = originalText;
         btn.disabled = false;
-    }, 500);
+    });
 };
 
 window.deleteTransaksiMasuk = function(id) {
     if (confirm('Apakah Anda yakin ingin menghapus data transaksi masuk ini? Stok barang terkait akan disesuaikan kembali.')) {
-        const masukList = DB.get('ud_transaksi_masuk', []);
-        const t = masukList.find(x => x.id_masuk === id);
-        if (t) {
-            const barangList = DB.get('ud_barang', []);
-            const targetBarang = barangList.find(b => b.nama_barang === t.barang);
-            if (targetBarang) {
-                targetBarang.stok = Math.max(0, targetBarang.stok - t.qty);
-                DB.set('ud_barang', barangList);
+        const formData = new FormData();
+        formData.append('_method', 'DELETE');
+        formData.append('id_masuk', id);
+        
+        fetch(BASE_URL + '/api/transaksi/masuk.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showToast(data.message, 'success');
+                renderBarangMasukTable();
+            } else {
+                showToast(data.message, 'error');
             }
+        })
+        .catch(error => {
+            console.warn("Gagal menghubungi API transaksi masuk, menggunakan fallback offline local:", error);
             
-            const filtered = masukList.filter(x => x.id_masuk !== id);
-            DB.set('ud_transaksi_masuk', filtered);
-            showToast('Transaksi berhasil dihapus secara lokal! (Offline)', 'success');
-            renderBarangMasukTable();
-        }
+            const masukList = DB.get('ud_transaksi_masuk', []);
+            const t = masukList.find(x => x.id_masuk === id);
+            if (t) {
+                const barangList = DB.get('ud_barang', []);
+                const targetBarang = barangList.find(b => b.nama_barang === t.barang);
+                if (targetBarang) {
+                    targetBarang.stok = Math.max(0, targetBarang.stok - t.qty);
+                    DB.set('ud_barang', barangList);
+                }
+                
+                const filtered = masukList.filter(x => x.id_masuk !== id);
+                DB.set('ud_transaksi_masuk', filtered);
+                showToast('Transaksi berhasil dihapus secara lokal! (Offline)', 'success');
+                renderBarangMasukTable();
+            }
+        });
     }
 };
 
 window.deleteTransaksiKeluar = function(id) {
     if (confirm('Apakah Anda yakin ingin menghapus data transaksi keluar ini? Stok barang terkait akan disesuaikan kembali.')) {
-        const keluarList = DB.get('ud_transaksi_keluar', []);
-        const t = keluarList.find(x => x.id_keluar === id);
-        if (t) {
-            const barangList = DB.get('ud_barang', []);
-            const targetBarang = barangList.find(b => b.nama_barang === t.barang);
-            if (targetBarang) {
-                targetBarang.stok += t.qty;
-                DB.set('ud_barang', barangList);
+        const formData = new FormData();
+        formData.append('_method', 'DELETE');
+        formData.append('id_keluar', id);
+        
+        fetch(BASE_URL + '/api/transaksi/keluar.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showToast(data.message, 'success');
+                renderBarangKeluarTable();
+            } else {
+                showToast(data.message, 'error');
             }
+        })
+        .catch(error => {
+            console.warn("Gagal menghubungi API transaksi keluar, menggunakan fallback offline local:", error);
             
-            const filtered = keluarList.filter(x => x.id_keluar !== id);
-            DB.set('ud_transaksi_keluar', filtered);
-            showToast('Transaksi berhasil dihapus secara lokal! (Offline)', 'success');
-            renderBarangKeluarTable();
-        }
+            const keluarList = DB.get('ud_transaksi_keluar', []);
+            const t = keluarList.find(x => x.id_keluar === id);
+            if (t) {
+                const barangList = DB.get('ud_barang', []);
+                const targetBarang = barangList.find(b => b.nama_barang === t.barang);
+                if (targetBarang) {
+                    targetBarang.stok += t.qty;
+                    DB.set('ud_barang', barangList);
+                }
+                
+                const filtered = keluarList.filter(x => x.id_keluar !== id);
+                DB.set('ud_transaksi_keluar', filtered);
+                showToast('Transaksi berhasil dihapus secara lokal! (Offline)', 'success');
+                renderBarangKeluarTable();
+            }
+        });
     }
 };
 
