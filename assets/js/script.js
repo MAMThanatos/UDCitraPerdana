@@ -387,11 +387,25 @@ document.addEventListener('DOMContentLoaded', async function () {
     // RENDERING ENGINE (DYNAMIC TABLE LOOPS - OFFLINE STATE)
     // ==========================================================
 
-    window.renderBarangTable = function(searchQuery = '', categoryFilter = '') {
+    window.renderBarangTable = async function(searchQuery = '', categoryFilter = '') {
         const tableBody = document.getElementById('barangTableBody');
         if (!tableBody) return;
         
-        const barangList = DB.get('ud_barang', []);
+        let barangList = [];
+        try {
+            const response = await fetch(BASE_URL + '/api/barang/read.php');
+            const data = await response.json();
+            if (data.status === 'success') {
+                barangList = data.data;
+                DB.set('ud_barang', barangList); // Sinkronisasi cache lokal
+            } else {
+                barangList = DB.get('ud_barang', []);
+            }
+        } catch (e) {
+            console.warn("Gagal terhubung ke API barang, menggunakan cache lokal:", e);
+            barangList = DB.get('ud_barang', []);
+        }
+        
         tableBody.innerHTML = '';
         
         const filtered = barangList.filter(item => {
@@ -812,15 +826,54 @@ window.saveBarang = function() {
         satuan = 'Kotak';
     }
     
-    const barangList = DB.get('ud_barang', []);
     const editId = form.getAttribute('data-edit-id');
-    
     const btn = document.querySelector('.modal-footer .btn-primary');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Menyimpan...';
     btn.disabled = true;
     
-    setTimeout(() => {
+    // Siapkan FormData untuk dikirim ke PHP API
+    const formData = new FormData();
+    if (editId) {
+        const barangList = DB.get('ud_barang', []);
+        const item = barangList.find(b => b.kode_barang === editId);
+        if (item) {
+            formData.append('id_barang', item.id_barang);
+        }
+    }
+    formData.append('kode_barang', kodeBarang);
+    formData.append('lokasi_rak', lokasiRak);
+    formData.append('nama_barang', namaBarang);
+    formData.append('deskripsi', deskripsiBarang);
+    formData.append('kategori', kategoriBarang);
+    formData.append('stok', stokBarang);
+    formData.append('satuan', satuan);
+    formData.append('berat', beratBarang);
+    formData.append('dimensi', dimensiBarang);
+    formData.append('harga_beli', hargaBeliBarang);
+    formData.append('harga', hargaBarang);
+
+    fetch(BASE_URL + '/api/barang/save.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showToast(data.message, 'success');
+            closeModal();
+            renderBarangTable();
+        } else {
+            showToast(data.message, 'error');
+        }
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    })
+    .catch(error => {
+        console.warn("Gagal menghubungi API barang, menggunakan fallback offline local:", error);
+        
+        // --- FALLBACK OFFLINE LOCALSTORAGE ---
+        const barangList = DB.get('ud_barang', []);
         if (editId) {
             const index = barangList.findIndex(b => b.kode_barang === editId);
             if (index !== -1) {
@@ -867,16 +920,35 @@ window.saveBarang = function() {
         btn.innerHTML = originalText;
         btn.disabled = false;
         renderBarangTable();
-    }, 500);
+    });
 };
 
 window.deleteBarang = function(kodeBarang) {
     if (confirm(`Apakah Anda yakin ingin menghapus barang dengan kode ${kodeBarang}?`)) {
-        const barangList = DB.get('ud_barang', []);
-        const filtered = barangList.filter(b => b.kode_barang !== kodeBarang);
-        DB.set('ud_barang', filtered);
-        showToast('Data barang dihapus secara lokal! (Offline)', 'success');
-        renderBarangTable();
+        const formData = new FormData();
+        formData.append('kode_barang', kodeBarang);
+        
+        fetch(BASE_URL + '/api/barang/delete.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showToast(data.message, 'success');
+                renderBarangTable();
+            } else {
+                showToast(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.warn("Gagal menghubungi API barang, menggunakan fallback offline local:", error);
+            const barangList = DB.get('ud_barang', []);
+            const filtered = barangList.filter(b => b.kode_barang !== kodeBarang);
+            DB.set('ud_barang', filtered);
+            showToast('Data barang dihapus secara lokal! (Offline)', 'success');
+            renderBarangTable();
+        });
     }
 };
 
