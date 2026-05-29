@@ -120,11 +120,23 @@ DB.init();
 
 let USER_SESSION = null;
 
+// Penanganan tombol Back / Forward browser agar halaman di-reload riil (mengatasi bfcache)
+window.addEventListener('pageshow', function (event) {
+    const historyTraversal = event.persisted || 
+                             (typeof window.performance != 'undefined' && 
+                              (window.performance.navigation.type === 2 || 
+                               (performance.getEntriesByType && 
+                                performance.getEntriesByType('navigation')[0] && 
+                                performance.getEntriesByType('navigation')[0].type === 'back_forward')));
+    if (historyTraversal) {
+        window.location.reload();
+    }
+});
 document.addEventListener('DOMContentLoaded', async function () {
     let isServerOnline = false;
     // Cek Session (PHP Backend)
     try {
-        const response = await fetch(BASE_URL + '/api/auth/me.php');
+        const response = await fetch(BASE_URL + '/api/auth/me.php', { credentials: 'same-origin' });
         const data = await response.json();
         isServerOnline = true;
         if (data.status === 'success') {
@@ -132,9 +144,24 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Sinkronkan ke local storage agar sejalan
             localStorage.setItem('ud_session', JSON.stringify(USER_SESSION));
         } else {
-            // Server online, tapi sesi kosong/kedaluwarsa -> hapus sesi lokal untuk keamanan
-            localStorage.removeItem('ud_session');
-            USER_SESSION = null;
+            // Server online, tapi sesi kosong/kedaluwarsa -> cek apakah ada sesi mock lokal
+            const localSessionStr = localStorage.getItem('ud_session');
+            let isLocalMock = false;
+            if (localSessionStr) {
+                try {
+                    const localSession = JSON.parse(localSessionStr);
+                    if (localSession && localSession.isMock) {
+                        isLocalMock = true;
+                        USER_SESSION = localSession;
+                    }
+                } catch(e) {}
+            }
+            
+            if (!isLocalMock) {
+                // Server online, dan tidak ada mock -> hapus sesi lokal untuk keamanan
+                localStorage.removeItem('ud_session');
+                USER_SESSION = null;
+            }
         }
     } catch (error) {
         console.warn("Gagal mengecek session backend (PHP/Database mati), menggunakan local fallback:", error);
@@ -278,7 +305,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                         id_user: usernameInput === 'admin' ? 1 : 2,
                         username: usernameInput,
                         nama_lengkap: nama,
-                        role: role
+                        role: role,
+                        isMock: true
                     };
                     
                     localStorage.setItem('ud_session', JSON.stringify(mockSession));
@@ -298,7 +326,8 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             fetch(BASE_URL + '/api/auth/login.php', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                credentials: 'same-origin'
             })
             .then(response => response.json())
             .then(data => {
