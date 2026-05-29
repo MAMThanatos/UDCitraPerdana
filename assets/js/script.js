@@ -121,19 +121,27 @@ DB.init();
 let USER_SESSION = null;
 
 document.addEventListener('DOMContentLoaded', async function () {
+    let isServerOnline = false;
     // Cek Session (PHP Backend)
     try {
         const response = await fetch(BASE_URL + '/api/auth/me.php');
         const data = await response.json();
+        isServerOnline = true;
         if (data.status === 'success') {
             USER_SESSION = data.data;
+            // Sinkronkan ke local storage agar sejalan
+            localStorage.setItem('ud_session', JSON.stringify(USER_SESSION));
+        } else {
+            // Server online, tapi sesi kosong/kedaluwarsa -> hapus sesi lokal untuk keamanan
+            localStorage.removeItem('ud_session');
+            USER_SESSION = null;
         }
     } catch (error) {
         console.warn("Gagal mengecek session backend (PHP/Database mati), menggunakan local fallback:", error);
     }
 
-    // Fallback ke LocalStorage jika backend offline
-    if (!USER_SESSION) {
+    // Fallback ke LocalStorage HANYA jika backend offline (Server mati)
+    if (!isServerOnline && !USER_SESSION) {
         const localSession = localStorage.getItem('ud_session');
         if (localSession) {
             try {
