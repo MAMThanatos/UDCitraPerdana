@@ -47,6 +47,10 @@ CREATE TABLE `user` (
   PRIMARY KEY (`id_user`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+INSERT INTO `user` (`id_user`, `username`, `password`, `nama_lengkap`, `role`) VALUES
+(1, 'admin', '$2y$10$3OGXwp3x4h7lQ9US2LG.x.zRM201MFOGbJ5BxPO4oe3Olkg1WzInq', 'Administrator Super', 'Admin / Owner'),
+(2, 'budi_gudang', '$2y$10$VIMgLxtTiCMu6fW4Y/f.7OdwxIGNKUOrdLcIHB.WOqpZ50pRJpZ06', 'Budi Santoso', 'Staf Gudang');
+
 -- --------------------------------------------------------
 
 --
@@ -58,6 +62,12 @@ CREATE TABLE `kategori` (
   `nama_kategori` varchar(50) NOT NULL UNIQUE,
   PRIMARY KEY (`id_kategori`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `kategori` (`id_kategori`, `nama_kategori`) VALUES
+(1, 'Bahan Bangunan'),
+(2, 'Peralatan & Perkakas'),
+(3, 'Cat & Finishing'),
+(4, 'Pipa & Saniter');
 
 -- --------------------------------------------------------
 
@@ -72,6 +82,12 @@ CREATE TABLE `supplier` (
   `no_telp` varchar(15) DEFAULT NULL,
   PRIMARY KEY (`id_supplier`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `supplier` (`id_supplier`, `nama_supplier`, `alamat`, `no_telp`) VALUES
+(1, 'PT. Semen Indonesia', 'Gresik, Jawa Timur', '08123456789'),
+(2, 'Toko Besi Makmur', 'Surabaya, Jawa Timur', '08234567890'),
+(3, 'CV. Dulux Colorindo', 'Jakarta Barat', '08345678901'),
+(4, 'PT. Rucika Saniter', 'Tangerang, Banten', '08456789012');
 
 -- --------------------------------------------------------
 
