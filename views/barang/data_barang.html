@@ -141,64 +141,25 @@
                 <form id="formBarang">
                     <div class="form-grid">
                         <div class="input-group">
-                            <label>Kode Barang (SKU)</label>
+                            <label>Nama Barang</label>
                             <div class="input-wrapper">
-                                <input type="text" id="kodeBarang" placeholder="Contoh: BRG-001" required>
+                                <input type="text" id="namaBarang" placeholder="Masukkan nama barang" required>
                             </div>
                         </div>
-                        <div class="input-group">
-                            <label>Lokasi Rak / Zona</label>
-                            <div class="input-wrapper">
-                                <input type="text" id="lokasiRak" placeholder="Contoh: Rak A-1" required>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <label>Nama Barang</label>
-                        <div class="input-wrapper">
-                            <input type="text" id="namaBarang" placeholder="Masukkan nama barang" required>
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <label>Deskripsi Barang</label>
-                        <div class="input-wrapper">
-                            <input type="text" id="deskripsiBarang" placeholder="Keterangan / spesifikasi detail barang..." required>
-                        </div>
-                    </div>
-                    <div class="form-grid">
                         <div class="input-group">
                             <label>Kategori</label>
                             <div class="input-wrapper">
                                 <select id="kategoriBarang" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 14px; outline: none; color: var(--text-main); background-color: var(--surface);" required>
                                     <option value="">Pilih Kategori</option>
-                                    <option value="Material Dasar">Material Dasar</option>
-                                    <option value="Aksesoris">Aksesoris</option>
-                                    <option value="Finishing">Finishing</option>
-                                    <option value="Plumbing">Plumbing</option>
+                                    <option value="Bahan Bangunan">Bahan Bangunan (Semen, Bata, Pasir)</option>
+                                    <option value="Peralatan & Perkakas">Peralatan & Perkakas (Paku, Palu, Kawat)</option>
+                                    <option value="Cat & Finishing">Cat & Finishing (Cat, Kuas, Dempul)</option>
+                                    <option value="Pipa & Saniter">Pipa & Saniter (Pipa PVC, Kran, Valve)</option>
                                 </select>
                             </div>
                         </div>
-                        <div class="input-group">
-                            <label>Stok Awal</label>
-                            <div class="input-wrapper">
-                                <input type="number" id="stokBarang" placeholder="0" min="0" required>
-                            </div>
-                        </div>
                     </div>
-                    <div class="form-grid">
-                        <div class="input-group">
-                            <label>Berat</label>
-                            <div class="input-wrapper">
-                                <input type="text" id="beratBarang" placeholder="Contoh: 50 kg" required>
-                            </div>
-                        </div>
-                        <div class="input-group">
-                            <label>Dimensi (P x L x T)</label>
-                            <div class="input-wrapper">
-                                <input type="text" id="dimensiBarang" placeholder="Contoh: 60x40x15 cm" required>
-                            </div>
-                        </div>
-                    </div>
+                    
                     <div class="form-grid">
                         <div class="input-group">
                             <label>Harga Beli per Satuan</label>
@@ -212,6 +173,36 @@
                             <div class="input-wrapper">
                                 <i class="icon-left" style="font-style: normal; font-weight: 600;">Rp</i>
                                 <input type="number" id="hargaBarang" placeholder="0" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>Stok Awal</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="stokBarang" placeholder="0" min="0" required>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Kode Barang (SKU)</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="kodeBarang" placeholder="Auto-generate jika kosong (Opsional)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>Lokasi Rak / Zona</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="lokasiRak" placeholder="Contoh: Rak A-1 (Opsional)">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Deskripsi Barang</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="deskripsiBarang" placeholder="Keterangan singkat (Opsional)">
                             </div>
                         </div>
                     </div>
