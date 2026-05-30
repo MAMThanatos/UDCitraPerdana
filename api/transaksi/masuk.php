@@ -14,6 +14,27 @@ $user_id = $_SESSION['user_id'];
 
 // --- HANDLE GET METHOD: FETCH TRANSACTIONS ---
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    if (isset($_GET['action']) && $_GET['action'] === 'suppliers') {
+        try {
+            $result = $conn->query("SELECT DISTINCT nama_supplier FROM supplier ORDER BY nama_supplier ASC");
+            $suppliers = [];
+            while ($row = $result->fetch_assoc()) {
+                $suppliers[] = $row['nama_supplier'];
+            }
+            echo json_encode([
+                'status' => 'success',
+                'data' => $suppliers
+            ]);
+        } catch (Exception $e) {
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Gagal memuat supplier: ' . $e->getMessage()
+            ]);
+        }
+        $conn->close();
+        exit;
+    }
+
     try {
         $sql = "SELECT tm.id_masuk, tm.tgl_masuk, tm.no_ref, tm.no_po, tm.keterangan,
                        s.nama_supplier, b.nama_barang, b.kode_barang, dm.jumlah, dm.kondisi_qc

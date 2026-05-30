@@ -1547,6 +1547,34 @@ window.openModal = function(action, id = null) {
             if (form) form.reset();
             const dateInput = document.getElementById('tanggalTransaksi');
             if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+            
+            // Populasikan list autocomplete supplier secara dinamis
+            const supplierDatalist = document.getElementById('supplierList');
+            if (supplierDatalist) {
+                supplierDatalist.innerHTML = '';
+                fetch(BASE_URL + '/api/transaksi/masuk.php?action=suppliers', { credentials: 'same-origin' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        data.data.forEach(supName => {
+                            const opt = document.createElement('option');
+                            opt.value = supName;
+                            supplierDatalist.appendChild(opt);
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.warn("Gagal memuat list supplier dinamis, menggunakan cache transaksi lokal:", err);
+                    // Fallback offline: Ambil dari cache transaksi lokal
+                    const masukList = DB.get('ud_transaksi_masuk', []);
+                    const uniqueSuppliers = [...new Set(masukList.map(t => t.supplier))].filter(Boolean);
+                    uniqueSuppliers.forEach(supName => {
+                        const opt = document.createElement('option');
+                        opt.value = supName;
+                        supplierDatalist.appendChild(opt);
+                    });
+                });
+            }
         } else if (action === 'addKeluar') {
             modalTitle.innerText = 'Tambah Barang Keluar';
             if (form) form.reset();
