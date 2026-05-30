@@ -424,7 +424,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         
         let barangList = [];
         try {
-            const response = await fetch(BASE_URL + '/api/barang/read.php');
+            const response = await fetch(BASE_URL + '/api/barang/read.php', { credentials: 'same-origin' });
             const data = await response.json();
             if (data.status === 'success') {
                 barangList = data.data;
@@ -477,7 +477,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         
         let masukList = [];
         try {
-            const response = await fetch(BASE_URL + '/api/transaksi/masuk.php');
+            const response = await fetch(BASE_URL + '/api/transaksi/masuk.php', { credentials: 'same-origin' });
             const data = await response.json();
             if (data.status === 'success') {
                 masukList = data.data;
@@ -531,7 +531,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         
         let keluarList = [];
         try {
-            const response = await fetch(BASE_URL + '/api/transaksi/keluar.php');
+            const response = await fetch(BASE_URL + '/api/transaksi/keluar.php', { credentials: 'same-origin' });
             const data = await response.json();
             if (data.status === 'success') {
                 keluarList = data.data;
@@ -585,7 +585,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         let isOffline = false;
         
         try {
-            const response = await fetch(BASE_URL + '/api/laporan/read_stok.php?month=' + monthFilter);
+            const response = await fetch(BASE_URL + '/api/laporan/read_stok.php?month=' + monthFilter, { credentials: 'same-origin' });
             const data = await response.json();
             if (data.status === 'success') {
                 reportData = data.data;
@@ -675,7 +675,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         let isOffline = false;
         
         try {
-            const response = await fetch(BASE_URL + '/api/user/read.php');
+            const response = await fetch(BASE_URL + '/api/user/read.php', { credentials: 'same-origin' });
             const data = await response.json();
             if (data.status === 'success') {
                 userList = data.data;
@@ -998,7 +998,8 @@ window.saveBarang = function() {
 
     fetch(BASE_URL + '/api/barang/save.php', {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'same-origin'
     })
     .then(response => response.json())
     .then(data => {
@@ -1073,7 +1074,8 @@ window.deleteBarang = function(kodeBarang) {
         
         fetch(BASE_URL + '/api/barang/delete.php', {
             method: 'POST',
-            body: formData
+            body: formData,
+            credentials: 'same-origin'
         })
         .then(response => response.json())
         .then(data => {
@@ -1159,7 +1161,8 @@ window.saveTransaksi = function() {
 
     fetch(apiUrl, {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'same-origin'
     })
     .then(response => response.json())
     .then(data => {
@@ -1263,7 +1266,8 @@ window.deleteTransaksiMasuk = function(id) {
         
         fetch(BASE_URL + '/api/transaksi/masuk.php', {
             method: 'POST',
-            body: formData
+            body: formData,
+            credentials: 'same-origin'
         })
         .then(response => response.json())
         .then(data => {
@@ -1304,7 +1308,8 @@ window.deleteTransaksiKeluar = function(id) {
         
         fetch(BASE_URL + '/api/transaksi/keluar.php', {
             method: 'POST',
-            body: formData
+            body: formData,
+            credentials: 'same-origin'
         })
         .then(response => response.json())
         .then(data => {
@@ -1370,7 +1375,8 @@ window.simpanAkun = function(btn) {
 
     fetch(BASE_URL + '/api/user/save.php', {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'same-origin'
     })
     .then(response => response.json())
     .then(data => {
@@ -1430,7 +1436,8 @@ window.deleteUser = function(id) {
         
         fetch(BASE_URL + '/api/user/delete.php', {
             method: 'POST',
-            body: formData
+            body: formData,
+            credentials: 'same-origin'
         })
         .then(response => response.json())
         .then(data => {
