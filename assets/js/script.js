@@ -23,12 +23,13 @@ window.showToast = function(message, type = 'success') {
         toast.classList.add('show');
     }, 10);
 
+    const savedDuration = parseInt(localStorage.getItem('ud_toast_duration') ?? '3000');
     setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => {
             toast.remove();
         }, 300);
-    }, 3000);
+    }, savedDuration);
 };
 
 const getBaseUrl = () => {
@@ -270,6 +271,26 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (dropdownMenu) {
             dropdownMenu.querySelector('.dropdown-user-name').textContent = USER_SESSION.nama_lengkap;
             dropdownMenu.querySelector('.dropdown-user-role').textContent = USER_SESSION.role;
+            
+            // Profil Action
+            const profileLink = Array.from(dropdownMenu.querySelectorAll('.dropdown-item')).find(el => el.textContent.includes('Profil'));
+            if (profileLink) {
+                profileLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    dropdownMenu.classList.remove('active');
+                    openProfileModal();
+                });
+            }
+            
+            // Pengaturan Action
+            const settingsLink = Array.from(dropdownMenu.querySelectorAll('.dropdown-item')).find(el => el.textContent.includes('Pengaturan'));
+            if (settingsLink) {
+                settingsLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    dropdownMenu.classList.remove('active');
+                    openSettingsModal();
+                });
+            }
             
             // Logout Action
             const logoutBtn = dropdownMenu.querySelector('.logout');
@@ -1705,6 +1726,8 @@ window.onclick = function(event) {
     const akunModal = document.getElementById('akunModal');
     const qrModal = document.getElementById('qrModal');
     const scannerModal = document.getElementById('scannerModal');
+    const dynamicProfileModal = document.getElementById('dynamicProfileModal');
+    const dynamicSettingsModal = document.getElementById('dynamicSettingsModal');
     
     if (event.target == barangModal) {
         barangModal.style.display = "none";
@@ -1720,6 +1743,12 @@ window.onclick = function(event) {
     }
     if (event.target == scannerModal) {
         scannerModal.style.display = "none";
+    }
+    if (event.target == dynamicProfileModal) {
+        dynamicProfileModal.remove();
+    }
+    if (event.target == dynamicSettingsModal) {
+        dynamicSettingsModal.remove();
     }
 };
 
@@ -1828,7 +1857,9 @@ window.triggerScanSuccess = function(nama, kode) {
         
         oscillator.type = 'sine';
         oscillator.frequency.value = 1200;
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        
+        const savedVolume = parseFloat(localStorage.getItem('ud_beep_volume') ?? '0.1');
+        gainNode.gain.setValueAtTime(savedVolume, audioCtx.currentTime);
         
         oscillator.start();
         setTimeout(() => {
@@ -1933,4 +1964,171 @@ window.exportLaporanStokToExcel = function() {
     URL.revokeObjectURL(url);
     
     showToast('Laporan Stok berhasil diexport ke Excel!', 'success');
+};
+
+// ==========================================================
+// DYNAMIC MODALS FOR PROFILE & SETTINGS
+// ==========================================================
+window.openProfileModal = function() {
+    // Bersihkan modal profil dinamis lama jika ada
+    const existing = document.getElementById('dynamicProfileModal');
+    if (existing) existing.remove();
+
+    const profileModalHTML = `
+    <div id="dynamicProfileModal" class="modal" style="display: flex;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Profil Pengguna</h3>
+                <span class="close-btn" onclick="document.getElementById('dynamicProfileModal').remove()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="width: 70px; height: 70px; border-radius: 50%; background-color: var(--primary-light); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 10px;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h4 style="font-size: 18px; color: var(--text-main); margin-bottom: 4px;">${USER_SESSION.nama_lengkap}</h4>
+                    <span class="badge badge-info">${USER_SESSION.role}</span>
+                </div>
+                
+                <div style="border-top: 1px solid var(--border-color); padding-top: 15px; margin-bottom: 15px;">
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;"><strong>Username:</strong> <span style="color: var(--text-main); font-weight: 500;">${USER_SESSION.username}</span></p>
+                </div>
+                
+                <form id="changePasswordForm" onsubmit="event.preventDefault(); window.changeProfilePassword();">
+                    <h5 style="margin-bottom: 10px; color: var(--text-main); font-size: 14px;"><i class="fas fa-key" style="margin-right: 5px;"></i> Ubah Password</h5>
+                    <div class="input-group" style="margin-bottom: 10px;">
+                        <label style="font-size: 12px; font-weight: 600;">Password Sekarang</label>
+                        <input type="password" id="oldPasswordInput" placeholder="Masukkan password lama" required style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 14px; outline: none; background-color: var(--surface);">
+                    </div>
+                    <div class="input-group" style="margin-bottom: 10px;">
+                        <label style="font-size: 12px; font-weight: 600;">Password Baru</label>
+                        <input type="password" id="newPasswordInput" placeholder="Masukkan password baru" required style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 14px; outline: none; background-color: var(--surface);">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full" style="padding: 10px; margin-top: 10px;">Simpan Password Baru</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="document.getElementById('dynamicProfileModal').remove()">Tutup</button>
+            </div>
+        </div>
+    </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', profileModalHTML);
+};
+
+window.changeProfilePassword = function() {
+    const oldPassword = document.getElementById('oldPasswordInput').value;
+    const newPassword = document.getElementById('newPasswordInput').value;
+    
+    const formBtn = document.querySelector('#changePasswordForm button');
+    const originalText = formBtn.innerHTML;
+    formBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Menyimpan...';
+    formBtn.disabled = true;
+    
+    const formData = new FormData();
+    formData.append('old_password', oldPassword);
+    formData.append('new_password', newPassword);
+    
+    fetch(BASE_URL + '/api/auth/change_password.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showToast(data.message, 'success');
+            document.getElementById('dynamicProfileModal').remove();
+        } else {
+            showToast(data.message, 'error');
+        }
+        formBtn.innerHTML = originalText;
+        formBtn.disabled = false;
+    })
+    .catch(err => {
+        showToast('Gagal mengubah password (Offline).', 'error');
+        formBtn.innerHTML = originalText;
+        formBtn.disabled = false;
+    });
+};
+
+window.openSettingsModal = function() {
+    const existing = document.getElementById('dynamicSettingsModal');
+    if (existing) existing.remove();
+
+    const currentVolume = Math.round(parseFloat(localStorage.getItem('ud_beep_volume') ?? '0.1') * 100);
+    const currentDuration = localStorage.getItem('ud_toast_duration') ?? '3000';
+
+    const settingsModalHTML = `
+    <div id="dynamicSettingsModal" class="modal" style="display: flex;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Pengaturan Aplikasi</h3>
+                <span class="close-btn" onclick="document.getElementById('dynamicSettingsModal').remove()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- 1. Volume Simulator Suara -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; justify-content: space-between; font-weight: 600; font-size: 14px; color: var(--text-main); margin-bottom: 8px;">
+                        <span>Volume Suara Bip (QR Scan)</span>
+                        <span id="volumeValueLabel">${currentVolume}%</span>
+                    </label>
+                    <input type="range" id="soundVolumeRange" min="0" max="100" value="${currentVolume}" style="width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; outline: none; cursor: pointer;">
+                </div>
+                
+                <!-- 2. Waktu Durasi Toast -->
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; font-size: 14px; color: var(--text-main);">Durasi Notifikasi Toast</label>
+                    <select id="toastDurationSelect" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 14px; outline: none; background-color: var(--surface);">
+                        <option value="2000" ${currentDuration === '2000' ? 'selected' : ''}>2 Detik</option>
+                        <option value="3000" ${currentDuration === '3000' ? 'selected' : ''}>3 Detik (Default)</option>
+                        <option value="5000" ${currentDuration === '5000' ? 'selected' : ''}>5 Detik</option>
+                    </select>
+                </div>
+                
+                <!-- 3. Reset Cache Database -->
+                <div style="border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 15px;">
+                    <label style="font-weight: 600; font-size: 14px; color: var(--text-main); display: block; margin-bottom: 5px;">Mekanisme Cadangan Offline</label>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Hapus database localStorage lokal jika ingin mensinkronkan ulang data dari awal.</p>
+                    <button class="btn btn-secondary" onclick="window.resetLocalStorageCache();" style="width: 100%; color: #ef4444; border-color: #fecaca; background: #fef2f2;"><i class="fas fa-trash-alt" style="margin-right: 5px;"></i> Bersihkan Cache Lokal & Refresh</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="document.getElementById('dynamicSettingsModal').remove()">Tutup</button>
+                <button class="btn btn-primary" onclick="window.saveSettingsPreferences();"><i class="fas fa-save" style="margin-right: 5px;"></i> Simpan Preferensi</button>
+            </div>
+        </div>
+    </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', settingsModalHTML);
+
+    document.getElementById('soundVolumeRange').oninput = function() {
+        document.getElementById('volumeValueLabel').innerText = this.value + '%';
+    };
+};
+
+window.saveSettingsPreferences = function() {
+    const volVal = parseFloat(document.getElementById('soundVolumeRange').value) / 100;
+    const durVal = document.getElementById('toastDurationSelect').value;
+    
+    localStorage.setItem('ud_beep_volume', volVal);
+    localStorage.setItem('ud_toast_duration', durVal);
+    
+    showToast('Preferensi pengaturan berhasil disimpan!', 'success');
+    document.getElementById('dynamicSettingsModal').remove();
+};
+
+window.resetLocalStorageCache = function() {
+    if (confirm('Apakah Anda yakin ingin membersihkan seluruh cache database offline lokal? Aplikasi akan melakukan sinkronisasi ulang.')) {
+        localStorage.removeItem('ud_barang');
+        localStorage.removeItem('ud_transaksi_masuk');
+        localStorage.removeItem('ud_transaksi_keluar');
+        localStorage.removeItem('ud_cleaned_dummy');
+        showToast('Cache berhasil dibersihkan! Me-reload halaman...', 'success');
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+    }
 };
