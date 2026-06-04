@@ -272,8 +272,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             dropdownMenu.querySelector('.dropdown-user-name').textContent = USER_SESSION.nama_lengkap;
             dropdownMenu.querySelector('.dropdown-user-role').textContent = USER_SESSION.role;
             
-            // Profil Action
-            const profileLink = Array.from(dropdownMenu.querySelectorAll('.dropdown-item')).find(el => el.textContent.includes('Profil'));
+            // Profil Action (Cari berdasarkan ikon fa-user-circle)
+            const profileLink = Array.from(dropdownMenu.querySelectorAll('.dropdown-item')).find(el => el.querySelector('.fa-user-circle'));
             if (profileLink) {
                 profileLink.innerHTML = '<i class="fas fa-user-circle"></i> Profil & Pengaturan';
                 profileLink.addEventListener('click', function(e) {
@@ -283,8 +283,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                 });
             }
             
-            // Pengaturan Action (Sembunyikan agar terintegrasi di dalam satu modal Profil)
-            const settingsLink = Array.from(dropdownMenu.querySelectorAll('.dropdown-item')).find(el => el.textContent.includes('Pengaturan'));
+            // Pengaturan Action (Cari berdasarkan ikon fa-cog, sembunyikan agar terintegrasi di modal Profil)
+            const settingsLink = Array.from(dropdownMenu.querySelectorAll('.dropdown-item')).find(el => el.querySelector('.fa-cog'));
             if (settingsLink) {
                 settingsLink.style.display = 'none';
             }
