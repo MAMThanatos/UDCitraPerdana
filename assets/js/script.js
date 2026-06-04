@@ -275,6 +275,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Profil Action
             const profileLink = Array.from(dropdownMenu.querySelectorAll('.dropdown-item')).find(el => el.textContent.includes('Profil'));
             if (profileLink) {
+                profileLink.innerHTML = '<i class="fas fa-user-circle"></i> Profil & Pengaturan';
                 profileLink.addEventListener('click', function(e) {
                     e.preventDefault();
                     dropdownMenu.classList.remove('active');
@@ -282,14 +283,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                 });
             }
             
-            // Pengaturan Action
+            // Pengaturan Action (Sembunyikan agar terintegrasi di dalam satu modal Profil)
             const settingsLink = Array.from(dropdownMenu.querySelectorAll('.dropdown-item')).find(el => el.textContent.includes('Pengaturan'));
             if (settingsLink) {
-                settingsLink.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    dropdownMenu.classList.remove('active');
-                    openSettingsModal();
-                });
+                settingsLink.style.display = 'none';
             }
             
             // Logout Action
@@ -1974,47 +1971,85 @@ window.openProfileModal = function() {
     const existing = document.getElementById('dynamicProfileModal');
     if (existing) existing.remove();
 
+    const currentVolume = Math.round(parseFloat(localStorage.getItem('ud_beep_volume') ?? '0.1') * 100);
+    const currentDuration = localStorage.getItem('ud_toast_duration') ?? '3000';
+
     const profileModalHTML = `
     <div id="dynamicProfileModal" class="modal" style="display: flex;">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h3>Profil Pengguna</h3>
+                <h3>Profil & Pengaturan Akun</h3>
                 <span class="close-btn" onclick="document.getElementById('dynamicProfileModal').remove()">&times;</span>
             </div>
-            <div class="modal-body">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="width: 70px; height: 70px; border-radius: 50%; background-color: var(--primary-light); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 10px;">
+            <div class="modal-body" style="max-height: 80vh; overflow-y: auto; padding: 20px;">
+                <!-- Kartu Informasi Pengguna -->
+                <div style="display: flex; align-items: center; gap: 15px; background: #f8fafc; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 20px;">
+                    <div style="width: 55px; height: 55px; border-radius: 50%; background-color: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 24px;">
                         <i class="fas fa-user"></i>
                     </div>
-                    <h4 style="font-size: 18px; color: var(--text-main); margin-bottom: 4px;">${USER_SESSION.nama_lengkap}</h4>
-                    <span class="badge badge-info">${USER_SESSION.role}</span>
+                    <div>
+                        <h4 style="font-size: 15px; color: var(--text-main); margin-bottom: 2px;">${USER_SESSION.nama_lengkap}</h4>
+                        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Username: <span style="font-weight: 600; color: var(--text-main);">${USER_SESSION.username}</span></p>
+                        <span class="badge badge-info" style="font-size: 9px; padding: 2px 6px;">${USER_SESSION.role}</span>
+                    </div>
                 </div>
                 
-                <div style="border-top: 1px solid var(--border-color); padding-top: 15px; margin-bottom: 15px;">
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;"><strong>Username:</strong> <span style="color: var(--text-main); font-weight: 500;">${USER_SESSION.username}</span></p>
-                </div>
-                
-                <form id="changePasswordForm" onsubmit="event.preventDefault(); window.changeProfilePassword();">
-                    <h5 style="margin-bottom: 10px; color: var(--text-main); font-size: 14px;"><i class="fas fa-key" style="margin-right: 5px;"></i> Ubah Password</h5>
-                    <div class="input-group" style="margin-bottom: 10px;">
-                        <label style="font-size: 12px; font-weight: 600;">Password Sekarang</label>
-                        <input type="password" id="oldPasswordInput" placeholder="Masukkan password lama" required style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 14px; outline: none; background-color: var(--surface);">
+                <!-- Kelompok 1: Ubah Keamanan Password -->
+                <form id="changePasswordForm" onsubmit="event.preventDefault(); window.changeProfilePassword();" style="background: var(--surface); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 15px;">
+                    <h5 style="margin-bottom: 12px; color: var(--primary); font-size: 13px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;"><i class="fas fa-key" style="margin-right: 5px;"></i> Ubah Keamanan Password</h5>
+                    <div class="input-group" style="margin-bottom: 8px;">
+                        <label style="font-size: 11px; font-weight: 600;">Password Sekarang</label>
+                        <input type="password" id="oldPasswordInput" placeholder="Masukkan password lama" required style="width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 13px; outline: none; background-color: var(--surface);">
                     </div>
-                    <div class="input-group" style="margin-bottom: 10px;">
-                        <label style="font-size: 12px; font-weight: 600;">Password Baru</label>
-                        <input type="password" id="newPasswordInput" placeholder="Masukkan password baru" required style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 14px; outline: none; background-color: var(--surface);">
+                    <div class="input-group" style="margin-bottom: 12px;">
+                        <label style="font-size: 11px; font-weight: 600;">Password Baru</label>
+                        <input type="password" id="newPasswordInput" placeholder="Masukkan password baru" required style="width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 13px; outline: none; background-color: var(--surface);">
                     </div>
-                    <button type="submit" class="btn btn-primary btn-full" style="padding: 10px; margin-top: 10px;">Simpan Password Baru</button>
+                    <button type="submit" class="btn btn-primary btn-full" style="padding: 8px; font-size: 12px;">Simpan Password Baru</button>
                 </form>
+                
+                <!-- Kelompok 2: Preferensi Aplikasi -->
+                <div style="background: var(--surface); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <h5 style="margin-bottom: 12px; color: var(--primary); font-size: 13px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;"><i class="fas fa-sliders-h" style="margin-right: 5px;"></i> Preferensi Aplikasi</h5>
+                    
+                    <!-- Volume Beep -->
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: flex; justify-content: space-between; font-weight: 600; font-size: 11px; color: var(--text-main); margin-bottom: 6px;">
+                            <span>Volume Beep (Scan QR)</span>
+                            <span id="volumeValueLabel">${currentVolume}%</span>
+                        </label>
+                        <input type="range" id="soundVolumeRange" min="0" max="100" value="${currentVolume}" style="width: 100%; height: 5px; background: var(--border-color); border-radius: 3px; outline: none; cursor: pointer;">
+                    </div>
+                    
+                    <!-- Durasi Toast -->
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <label style="font-size: 11px; font-weight: 600;">Durasi Notifikasi Toast</label>
+                        <select id="toastDurationSelect" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 13px; outline: none; background-color: var(--surface);">
+                            <option value="2000" ${currentDuration === '2000' ? 'selected' : ''}>2 Detik</option>
+                            <option value="3000" ${currentDuration === '3000' ? 'selected' : ''}>3 Detik (Default)</option>
+                            <option value="5000" ${currentDuration === '5000' ? 'selected' : ''}>5 Detik</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Reset Cache -->
+                    <div style="border-top: 1px dashed var(--border-color); padding-top: 10px; text-align: center;">
+                        <button class="btn btn-secondary" onclick="window.resetLocalStorageCache();" style="width: 100%; padding: 8px; font-size: 11px; color: #ef4444; border-color: #fecaca; background: #fef2f2;"><i class="fas fa-trash-alt" style="margin-right: 5px;"></i> Bersihkan Cache Lokal & Sync Ulang</button>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="document.getElementById('dynamicProfileModal').remove()">Tutup</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('dynamicProfileModal').remove()">Batal</button>
+                <button class="btn btn-primary" onclick="window.saveSettingsPreferences();"><i class="fas fa-save" style="margin-right: 5px;"></i> Simpan Pengaturan</button>
             </div>
         </div>
     </div>
     `;
 
     document.body.insertAdjacentHTML('beforeend', profileModalHTML);
+
+    document.getElementById('soundVolumeRange').oninput = function() {
+        document.getElementById('volumeValueLabel').innerText = this.value + '%';
+    };
 };
 
 window.changeProfilePassword = function() {
@@ -2053,62 +2088,6 @@ window.changeProfilePassword = function() {
     });
 };
 
-window.openSettingsModal = function() {
-    const existing = document.getElementById('dynamicSettingsModal');
-    if (existing) existing.remove();
-
-    const currentVolume = Math.round(parseFloat(localStorage.getItem('ud_beep_volume') ?? '0.1') * 100);
-    const currentDuration = localStorage.getItem('ud_toast_duration') ?? '3000';
-
-    const settingsModalHTML = `
-    <div id="dynamicSettingsModal" class="modal" style="display: flex;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Pengaturan Aplikasi</h3>
-                <span class="close-btn" onclick="document.getElementById('dynamicSettingsModal').remove()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <!-- 1. Volume Simulator Suara -->
-                <div style="margin-bottom: 20px;">
-                    <label style="display: flex; justify-content: space-between; font-weight: 600; font-size: 14px; color: var(--text-main); margin-bottom: 8px;">
-                        <span>Volume Suara Bip (QR Scan)</span>
-                        <span id="volumeValueLabel">${currentVolume}%</span>
-                    </label>
-                    <input type="range" id="soundVolumeRange" min="0" max="100" value="${currentVolume}" style="width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; outline: none; cursor: pointer;">
-                </div>
-                
-                <!-- 2. Waktu Durasi Toast -->
-                <div class="input-group" style="margin-bottom: 20px;">
-                    <label style="font-weight: 600; font-size: 14px; color: var(--text-main);">Durasi Notifikasi Toast</label>
-                    <select id="toastDurationSelect" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 14px; outline: none; background-color: var(--surface);">
-                        <option value="2000" ${currentDuration === '2000' ? 'selected' : ''}>2 Detik</option>
-                        <option value="3000" ${currentDuration === '3000' ? 'selected' : ''}>3 Detik (Default)</option>
-                        <option value="5000" ${currentDuration === '5000' ? 'selected' : ''}>5 Detik</option>
-                    </select>
-                </div>
-                
-                <!-- 3. Reset Cache Database -->
-                <div style="border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 15px;">
-                    <label style="font-weight: 600; font-size: 14px; color: var(--text-main); display: block; margin-bottom: 5px;">Mekanisme Cadangan Offline</label>
-                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Hapus database localStorage lokal jika ingin mensinkronkan ulang data dari awal.</p>
-                    <button class="btn btn-secondary" onclick="window.resetLocalStorageCache();" style="width: 100%; color: #ef4444; border-color: #fecaca; background: #fef2f2;"><i class="fas fa-trash-alt" style="margin-right: 5px;"></i> Bersihkan Cache Lokal & Refresh</button>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="document.getElementById('dynamicSettingsModal').remove()">Tutup</button>
-                <button class="btn btn-primary" onclick="window.saveSettingsPreferences();"><i class="fas fa-save" style="margin-right: 5px;"></i> Simpan Preferensi</button>
-            </div>
-        </div>
-    </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', settingsModalHTML);
-
-    document.getElementById('soundVolumeRange').oninput = function() {
-        document.getElementById('volumeValueLabel').innerText = this.value + '%';
-    };
-};
-
 window.saveSettingsPreferences = function() {
     const volVal = parseFloat(document.getElementById('soundVolumeRange').value) / 100;
     const durVal = document.getElementById('toastDurationSelect').value;
@@ -2117,7 +2096,7 @@ window.saveSettingsPreferences = function() {
     localStorage.setItem('ud_toast_duration', durVal);
     
     showToast('Preferensi pengaturan berhasil disimpan!', 'success');
-    document.getElementById('dynamicSettingsModal').remove();
+    document.getElementById('dynamicProfileModal').remove();
 };
 
 window.resetLocalStorageCache = function() {
