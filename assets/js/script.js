@@ -132,6 +132,55 @@ window.addEventListener('pageshow', function (event) {
         window.location.reload();
     }
 });
+// Sinkronisasi seluruh database dari server ke localStorage (Cache lokal) secara asinkron
+const syncDatabase = async () => {
+    if (!USER_SESSION) return;
+    
+    const fetchPromises = [
+        // 1. Sinkronisasi Barang
+        fetch(BASE_URL + '/api/barang/read.php', { credentials: 'same-origin' })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.status === 'success') {
+                    DB.set('ud_barang', data.data);
+                }
+            }).catch(e => console.warn("Gagal sinkronisasi data barang:", e)),
+            
+        // 2. Sinkronisasi Transaksi Masuk
+        fetch(BASE_URL + '/api/transaksi/masuk.php', { credentials: 'same-origin' })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.status === 'success') {
+                    DB.set('ud_transaksi_masuk', data.data);
+                }
+            }).catch(e => console.warn("Gagal sinkronisasi transaksi masuk:", e)),
+            
+        // 3. Sinkronisasi Transaksi Keluar
+        fetch(BASE_URL + '/api/transaksi/keluar.php', { credentials: 'same-origin' })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.status === 'success') {
+                    DB.set('ud_transaksi_keluar', data.data);
+                }
+            }).catch(e => console.warn("Gagal sinkronisasi transaksi keluar:", e))
+    ];
+    
+    // Admin mendapatkan otorisasi sinkronisasi daftar akun/user
+    if (USER_SESSION.role === 'Admin / Owner') {
+        fetchPromises.push(
+            fetch(BASE_URL + '/api/user/read.php', { credentials: 'same-origin' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.status === 'success') {
+                        DB.set('ud_users', data.data);
+                    }
+                }).catch(e => console.warn("Gagal sinkronisasi manajemen akun:", e))
+        );
+    }
+    
+    await Promise.all(fetchPromises);
+};
+
 document.addEventListener('DOMContentLoaded', async function () {
     let isServerOnline = false;
     // Cek Session (PHP Backend)
@@ -185,6 +234,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (!USER_SESSION && !isLoginPage) {
         window.location.href = BASE_URL + '/views/auth/login.html';
         return;
+    }
+
+    // Lakukan sinkronisasi database server ke cache lokal jika server online & sesi terautentikasi
+    if (isServerOnline && USER_SESSION && !USER_SESSION.isMock) {
+        await syncDatabase();
     }
 
     if (USER_SESSION && isLoginPage) {
@@ -1169,11 +1223,13 @@ window.saveTransaksi = function() {
         if (data.status === 'success') {
             showToast(data.message, 'success');
             closeModalTransaksi();
-            if (isMasuk) {
-                renderBarangMasukTable();
-            } else {
-                renderBarangKeluarTable();
-            }
+            syncDatabase().then(() => {
+                if (isMasuk) {
+                    renderBarangMasukTable();
+                } else {
+                    renderBarangKeluarTable();
+                }
+            });
         } else {
             showToast(data.message, 'error');
         }
@@ -1273,7 +1329,9 @@ window.deleteTransaksiMasuk = function(id) {
         .then(data => {
             if (data.status === 'success') {
                 showToast(data.message, 'success');
-                renderBarangMasukTable();
+                syncDatabase().then(() => {
+                    renderBarangMasukTable();
+                });
             } else {
                 showToast(data.message, 'error');
             }
@@ -1315,7 +1373,9 @@ window.deleteTransaksiKeluar = function(id) {
         .then(data => {
             if (data.status === 'success') {
                 showToast(data.message, 'success');
-                renderBarangKeluarTable();
+                syncDatabase().then(() => {
+                    renderBarangKeluarTable();
+                });
             } else {
                 showToast(data.message, 'error');
             }
