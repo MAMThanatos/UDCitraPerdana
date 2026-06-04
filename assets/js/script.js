@@ -193,7 +193,15 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Sinkronkan ke local storage agar sejalan
             localStorage.setItem('ud_session', JSON.stringify(USER_SESSION));
         } else {
-            // Server online, tapi sesi kosong/kedaluwarsa -> cek apakah ada sesi mock lokal
+            // Server online, tapi sesi kosong/kedaluwarsa
+            if (data.message && data.message.includes('perangkat lain')) {
+                localStorage.removeItem('ud_session');
+                USER_SESSION = null;
+                window.location.href = BASE_URL + '/views/auth/login.html?expired=device';
+                return;
+            }
+            
+            // Cek apakah ada sesi mock lokal
             const localSessionStr = localStorage.getItem('ud_session');
             let isLocalMock = false;
             if (localSessionStr) {
@@ -331,6 +339,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Login Form Submit Logic (Fetch ke PHP API + Mock Mode)
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('expired') === 'device') {
+            setTimeout(() => {
+                showToast('Sesi Anda berakhir karena akun telah login di perangkat lain.', 'error');
+            }, 100);
+        }
         loginForm.addEventListener('submit', function (e) {
             e.preventDefault();
             const btn = this.querySelector('button');
