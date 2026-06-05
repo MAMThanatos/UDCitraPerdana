@@ -942,10 +942,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     if (document.getElementById('laporanStokTableBody')) {
-        renderLaporanStokTable();
         const searchInput = document.querySelector('.search-box input');
         const categorySelect = document.querySelector('.table-header-actions select');
         const monthInput = document.querySelector('.table-header-actions input[type="month"]');
+        
+        if (monthInput) {
+            const now = new Date();
+            const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            monthInput.value = currentMonthStr;
+        }
+
         const trigger = () => {
             renderLaporanStokTable(
                 searchInput ? searchInput.value : '', 
@@ -953,6 +959,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 monthInput ? monthInput.value : ''
             );
         };
+        trigger();
         if (searchInput) searchInput.addEventListener('input', trigger);
         if (categorySelect) categorySelect.addEventListener('change', trigger);
         if (monthInput) monthInput.addEventListener('change', trigger);
@@ -1046,7 +1053,14 @@ document.addEventListener('DOMContentLoaded', async function () {
             renderBarangKeluarTable();
         }
         if (document.getElementById('laporanStokTableBody')) {
-            renderLaporanStokTable();
+            const searchInput = document.querySelector('.search-box input');
+            const categorySelect = document.querySelector('.table-header-actions select');
+            const monthInput = document.querySelector('.table-header-actions input[type="month"]');
+            renderLaporanStokTable(
+                searchInput ? searchInput.value : '', 
+                categorySelect ? categorySelect.value : '', 
+                monthInput ? monthInput.value : ''
+            );
         }
         if (document.getElementById('manajemenAkunTableBody')) {
             renderUserTable();
