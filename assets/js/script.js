@@ -183,16 +183,121 @@ const syncDatabase = async () => {
 };
 
 document.addEventListener('DOMContentLoaded', async function () {
+    const currentPath = window.location.pathname;
+    const isLoginPage = currentPath.includes('login.html') || currentPath.includes('register.html');
+
+    // 1. Ambil session dari localStorage secara sinkron untuk rendering awal yang instan (mencegah flash/glitch UI)
+    const cachedSessionStr = localStorage.getItem('ud_session');
+    let initialSession = null;
+    if (cachedSessionStr) {
+        try {
+            initialSession = JSON.parse(cachedSessionStr);
+            USER_SESSION = initialSession;
+        } catch (e) {}
+    }
+
+    // Fungsi pembantu untuk mengupdate tampilan profil & pembatasan menu secara instan
+    const applySessionUI = (session) => {
+        if (!session) return;
+        
+        // Update nama profil & role
+        const profileBtn = document.getElementById('userProfileBtn');
+        const dropdownMenu = document.getElementById('userDropdownMenu');
+        
+        if (profileBtn) {
+            const span = profileBtn.querySelector('span');
+            if (span) span.textContent = session.nama_lengkap;
+        }
+        
+        if (dropdownMenu) {
+            const nameEl = dropdownMenu.querySelector('.dropdown-user-name');
+            const roleEl = dropdownMenu.querySelector('.dropdown-user-role');
+            if (nameEl) nameEl.textContent = session.nama_lengkap;
+            if (roleEl) roleEl.textContent = session.role;
+            
+            // Profil Action (Cari berdasarkan ikon fa-user-circle)
+            const profileLink = Array.from(dropdownMenu.querySelectorAll('.dropdown-item')).find(el => el.querySelector('.fa-user-circle'));
+            if (profileLink) {
+                profileLink.innerHTML = '<i class="fas fa-user-circle"></i> Profil & Pengaturan';
+                if (!profileLink.dataset.hasListener) {
+                    profileLink.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        dropdownMenu.classList.remove('active');
+                        openProfileModal();
+                    });
+                    profileLink.dataset.hasListener = 'true';
+                }
+            }
+            
+            // Pengaturan Action (Cari berdasarkan ikon fa-cog, sembunyikan agar terintegrasi di modal Profil)
+            const settingsLink = Array.from(dropdownMenu.querySelectorAll('.dropdown-item')).find(el => el.querySelector('.fa-cog'));
+            if (settingsLink) {
+                settingsLink.style.display = 'none';
+            }
+            
+            // Logout Action
+            const logoutBtn = dropdownMenu.querySelector('.logout');
+            if (logoutBtn && !logoutBtn.dataset.hasListener) {
+                logoutBtn.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    try {
+                        await fetch(BASE_URL + '/api/auth/logout.php');
+                    } catch(err) {}
+                    localStorage.removeItem('ud_session');
+                    window.location.href = BASE_URL + '/views/auth/login.html';
+                });
+                logoutBtn.dataset.hasListener = 'true';
+            }
+        }
+
+        // Pembatasan menu role-based
+        if (session.role === 'Staf Gudang') {
+            const dashboardLinks = document.querySelectorAll('a[href*="index.html"]');
+            dashboardLinks.forEach(link => {
+                const li = link.closest('li');
+                if (li) li.style.display = 'none';
+            });
+
+            const manajemenAkunLinks = document.querySelectorAll('a[href*="manajemen_akun.html"]');
+            manajemenAkunLinks.forEach(link => {
+                const li = link.closest('li');
+                if (li) {
+                    li.style.display = 'none';
+                    const prev = li.previousElementSibling;
+                    if (prev && prev.classList.contains('menu-label')) {
+                        prev.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Redirect jika Staf Gudang berada di halaman terlarang
+            const onIndexPage = currentPath.endsWith('/') || currentPath.endsWith('index.html') || currentPath.includes('index.html');
+            if (onIndexPage || currentPath.includes('manajemen_akun.html')) {
+                window.location.href = BASE_URL + '/views/barang/data_barang.html';
+            }
+        }
+    };
+
+    // Render awal secara instan dengan data cache jika ada
+    if (USER_SESSION) {
+        applySessionUI(USER_SESSION);
+        // Render dashboard awal secara instan menggunakan data lokal
+        if (document.querySelector('.dashboard-cards')) {
+            renderDashboard();
+        }
+    }
+
     let isServerOnline = false;
-    // Cek Session (PHP Backend)
+    // Cek Session (PHP Backend) di latar belakang
     try {
         const response = await fetch(BASE_URL + '/api/auth/me.php', { credentials: 'same-origin' });
         const data = await response.json();
         isServerOnline = true;
         if (data.status === 'success') {
             USER_SESSION = data.data;
-            // Sinkronkan ke local storage agar sejalan
             localStorage.setItem('ud_session', JSON.stringify(USER_SESSION));
+            // Terapkan data sesi terbaru dari server
+            applySessionUI(USER_SESSION);
         } else {
             // Server online, tapi sesi kosong/kedaluwarsa
             if (data.message && data.message.includes('perangkat lain')) {
@@ -203,16 +308,10 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
             
             // Cek apakah ada sesi mock lokal
-            const localSessionStr = localStorage.getItem('ud_session');
             let isLocalMock = false;
-            if (localSessionStr) {
-                try {
-                    const localSession = JSON.parse(localSessionStr);
-                    if (localSession && localSession.isMock) {
-                        isLocalMock = true;
-                        USER_SESSION = localSession;
-                    }
-                } catch(e) {}
+            if (initialSession && initialSession.isMock) {
+                isLocalMock = true;
+                USER_SESSION = initialSession;
             }
             
             if (!isLocalMock) {
@@ -225,20 +324,12 @@ document.addEventListener('DOMContentLoaded', async function () {
         console.warn("Gagal mengecek session backend (PHP/Database mati), menggunakan local fallback:", error);
     }
 
-    // Fallback ke LocalStorage HANYA jika backend offline (Server mati)
+    // Fallback ke LocalStorage jika backend offline
     if (!isServerOnline && !USER_SESSION) {
-        const localSession = localStorage.getItem('ud_session');
-        if (localSession) {
-            try {
-                USER_SESSION = JSON.parse(localSession);
-            } catch (e) {
-                console.error("Gagal membaca session lokal:", e);
-            }
+        if (initialSession) {
+            USER_SESSION = initialSession;
         }
     }
-
-    const currentPath = window.location.pathname;
-    const isLoginPage = currentPath.includes('login.html') || currentPath.includes('register.html');
 
     if (!USER_SESSION && !isLoginPage) {
         window.location.href = BASE_URL + '/views/auth/login.html';
@@ -248,6 +339,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Lakukan sinkronisasi database server ke cache lokal jika server online & sesi terautentikasi
     if (isServerOnline && USER_SESSION && !USER_SESSION.isMock) {
         await syncDatabase();
+        // Render ulang dashboard setelah sinkronisasi selesai untuk menampilkan data terbaru dari server
+        if (document.querySelector('.dashboard-cards')) {
+            renderDashboard();
+        }
     }
 
     if (USER_SESSION && isLoginPage) {
@@ -257,86 +352,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             window.location.href = BASE_URL + '/index.html';
         }
         return;
-    }
-
-    // Update UI dengan data User
-    if (USER_SESSION) {
-        const profileBtn = document.getElementById('userProfileBtn');
-        const dropdownMenu = document.getElementById('userDropdownMenu');
-        
-        if (profileBtn) {
-            profileBtn.querySelector('span').textContent = USER_SESSION.nama_lengkap;
-        }
-        
-        if (dropdownMenu) {
-            dropdownMenu.querySelector('.dropdown-user-name').textContent = USER_SESSION.nama_lengkap;
-            dropdownMenu.querySelector('.dropdown-user-role').textContent = USER_SESSION.role;
-            
-            // Profil Action (Cari berdasarkan ikon fa-user-circle)
-            const profileLink = Array.from(dropdownMenu.querySelectorAll('.dropdown-item')).find(el => el.querySelector('.fa-user-circle'));
-            if (profileLink) {
-                profileLink.innerHTML = '<i class="fas fa-user-circle"></i> Profil & Pengaturan';
-                profileLink.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    dropdownMenu.classList.remove('active');
-                    openProfileModal();
-                });
-            }
-            
-            // Pengaturan Action (Cari berdasarkan ikon fa-cog, sembunyikan agar terintegrasi di modal Profil)
-            const settingsLink = Array.from(dropdownMenu.querySelectorAll('.dropdown-item')).find(el => el.querySelector('.fa-cog'));
-            if (settingsLink) {
-                settingsLink.style.display = 'none';
-            }
-            
-            // Logout Action
-            const logoutBtn = dropdownMenu.querySelector('.logout');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', async function(e) {
-                    e.preventDefault();
-                    try {
-                        await fetch(BASE_URL + '/api/auth/logout.php');
-                    } catch(err) {}
-                    localStorage.removeItem('ud_session');
-                    window.location.href = BASE_URL + '/views/auth/login.html';
-                });
-            }
-        }
-    }
-
-    // Enforce role-based menu visibility based on Use Case Diagram (2 Roles)
-    if (USER_SESSION) {
-        if (USER_SESSION.role === 'Staf Gudang') {
-            // 1. Hide "Dashboard" link from sidebar
-            const dashboardLinks = document.querySelectorAll('a[href*="index.html"]');
-            dashboardLinks.forEach(link => {
-                const li = link.closest('li');
-                if (li) {
-                    li.style.display = 'none';
-                }
-            });
-
-            // 2. Hide "Manajemen Akun" link from sidebar
-            const manajemenAkunLinks = document.querySelectorAll('a[href*="manajemen_akun.html"]');
-            manajemenAkunLinks.forEach(link => {
-                const li = link.closest('li');
-                if (li) {
-                    li.style.display = 'none';
-                    // Hide the preceding menu label "Pengaturan"
-                    const prev = li.previousElementSibling;
-                    if (prev && prev.classList.contains('menu-label')) {
-                        prev.style.display = 'none';
-                    }
-                }
-            });
-            
-            // 3. Redirect if they try to access index.html or manajemen_akun.html manually
-            const onIndexPage = currentPath.endsWith('/') || currentPath.endsWith('index.html') || currentPath.includes('index.html');
-            if (onIndexPage || currentPath.includes('manajemen_akun.html')) {
-                window.location.href = BASE_URL + '/views/barang/data_barang.html';
-                return;
-            }
-        }
     }
 
     // Toggle Password Visibility untuk Login & Register
