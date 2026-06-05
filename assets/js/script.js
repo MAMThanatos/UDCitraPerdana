@@ -643,11 +643,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                 
                 let matchesMonth = true;
                 if (monthFilter !== '') {
-                    const createdMonth = item.created_at ? item.created_at.slice(0, 7) : '';
-                    const hasHistory = 
-                        masukList.some(t => t.barang === item.nama_barang && t.tanggal.slice(0, 7) <= monthFilter) ||
-                        keluarList.some(t => t.barang === item.nama_barang && t.tanggal.slice(0, 7) <= monthFilter);
-                    matchesMonth = (createdMonth === '' || createdMonth <= monthFilter || hasHistory);
+                    const hasTransactionInMonth = 
+                        masukList.some(t => t.barang === item.nama_barang && t.tanggal.slice(0, 7) === monthFilter) ||
+                        keluarList.some(t => t.barang === item.nama_barang && t.tanggal.slice(0, 7) === monthFilter);
+                    matchesMonth = hasTransactionInMonth;
                 }
                 
                 return matchesSearch && matchesCategory && matchesMonth;

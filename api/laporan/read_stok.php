@@ -21,18 +21,16 @@ try {
     
     if (!empty($monthFilter) && preg_match('/^\d{4}-\d{2}$/', $monthFilter)) {
         $escaped_month = $conn->real_escape_string($monthFilter);
-        // Tampilkan barang yang didaftarkan pada atau sebelum bulan terpilih,
-        // ATAU barang yang memiliki riwayat transaksi masuk/keluar pada/sebelum bulan terpilih.
-        $sql_barang .= " WHERE (DATE_FORMAT(b.created_at, '%Y-%m') <= '$escaped_month'
-                         OR b.id_barang IN (
+        // Tampilkan HANYA barang yang memiliki transaksi masuk atau keluar pada bulan terpilih
+        $sql_barang .= " WHERE (b.id_barang IN (
                             SELECT id_barang FROM detailmasuk dm 
                             JOIN transaksimasuk tm ON dm.id_masuk = tm.id_masuk 
-                            WHERE DATE_FORMAT(tm.tgl_masuk, '%Y-%m') <= '$escaped_month'
+                            WHERE DATE_FORMAT(tm.tgl_masuk, '%Y-%m') = '$escaped_month'
                          )
                          OR b.id_barang IN (
                             SELECT id_barang FROM detailkeluar dk 
                             JOIN transaksikeluar tk ON dk.id_keluar = tk.id_keluar 
-                            WHERE DATE_FORMAT(tk.tgl_keluar, '%Y-%m') <= '$escaped_month'
+                            WHERE DATE_FORMAT(tk.tgl_keluar, '%Y-%m') = '$escaped_month'
                          ))";
     }
     
