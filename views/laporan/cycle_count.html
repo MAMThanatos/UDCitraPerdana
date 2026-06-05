@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Halaman Stock Opname (Cek Stok Fisik) UD Citra Perdana. Lakukan audit inventarisasi fisik, hitung selisih, dan sinkronkan stok secara berkala.">
+    <title>Stock Opname - Citra Perdana</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 style="display: flex; align-items: center;"><img src="../../assets/images/Logo Citra Perdana.png" 
+                    alt="Logo" style="max-height: 30px; margin-right: 10px;">Citra Perdana</h2>
+            </div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="../../index.html">
+                        <i class="fas fa-home"></i> <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="menu-label">Data Master</li>
+                <li>
+                    <a href="../barang/data_barang.html">
+                        <i class="fas fa-box"></i> <span>Kelola Data Barang</span>
+                    </a>
+                </li>
+                <li class="menu-label">Transaksi</li>
+                <li>
+                    <a href="../transaksi/barang_masuk.html">
+                        <i class="fas fa-arrow-down" style="color: #10b981;"></i> <span>Barang Masuk</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="../transaksi/barang_keluar.html">
+                        <i class="fas fa-arrow-up" style="color: #ef4444;"></i> <span>Barang Keluar</span>
+                    </a>
+                </li>
+                <li class="menu-label">Laporan</li>
+                <li>
+                    <a href="laporan_stok.html">
+                        <i class="fas fa-file-alt"></i> <span>Laporan Stok</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="cycle_count.html" class="active">
+                        <i class="fas fa-clipboard-check"></i> <span>Stock Opname</span>
+                    </a>
+                </li>
+                <li class="menu-label">Pengaturan</li>
+                <li>
+                    <a href="../user/manajemen_akun.html">
+                        <i class="fas fa-users-cog"></i> <span>Manajemen Akun</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <div class="main-content">
+            <header class="topbar">
+                <div class="toggle-btn" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+                <div class="user-profile-dropdown">
+                    <button class="user-profile-btn" id="userProfileBtn">
+                        <span>...</span>
+                        <div class="avatar"><i class="fas fa-user"></i></div>
+                    </button>
+                    <div class="user-dropdown-menu" id="userDropdownMenu">
+                        <div class="dropdown-user-info">
+                            <div class="dropdown-user-avatar"><i class="fas fa-user"></i></div>
+                            <div>
+                                <div class="dropdown-user-name">...</div>
+                                <div class="dropdown-user-role">Memuat...</div>
+                            </div>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-user-circle"></i> Profil
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-cog"></i> Pengaturan
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="../auth/login.html" class="dropdown-item logout">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </header>
+            
+            <main class="content-area">
+                <div class="page-header">
+                    <div>
+                        <h1>Stock Opname (Cek Stok Fisik)</h1>
+                        <p>Pencocokan berkala jumlah fisik di gudang dengan catatan sistem</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openOpnameModal()">
+                        <i class="fas fa-plus-circle" style="margin-right: 6px;"></i> Mulai Opname Baru
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-header-actions">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Cari keterangan atau petugas...">
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Keterangan</th>
+                                <th>Petugas</th>
+                                <th style="text-align: center;">Jumlah Item</th>
+                                <th style="text-align: center;">Total Selisih Qty</th>
+                                <th style="text-align: center;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="opnameTableBody">
+                            <!-- Rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal Form Stock Opname -->
+    <div id="opnameModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3>Mulai Stock Opname Baru</h3>
+                <span class="close-btn" onclick="closeOpnameModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="formOpname">
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>Tanggal Opname</label>
+                            <div class="input-wrapper">
+                                <input type="date" id="tglOpname" required>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Filter Kategori Barang</label>
+                            <div class="input-wrapper">
+                                <select id="filterKategoriOpname" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 14px; outline: none; background-color: var(--surface);">
+                                    <option value="">Semua Kategori</option>
+                                    <option value="Bahan Bangunan">Bahan Bangunan</option>
+                                    <option value="Peralatan & Perkakas">Peralatan & Perkakas</option>
+                                    <option value="Cat & Finishing">Cat & Finishing</option>
+                                    <option value="Pipa & Saniter">Pipa & Saniter</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-group" style="margin-bottom: 20px;">
+                        <label>Keterangan Sesi Opname</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="keteranganOpname" placeholder="Contoh: Audit Semen Triwulan I" required>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-bottom: 10px; color: var(--text-main); font-weight: 600;">Daftar Fisik Barang</h4>
+                    <div style="max-height: 350px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); background-color: var(--surface);">
+                        <table class="data-table" style="box-shadow: none;">
+                            <thead>
+                                <tr>
+                                    <th>Barang</th>
+                                    <th>Lokasi Rak</th>
+                                    <th style="text-align: center; width: 100px;">Stok Sistem</th>
+                                    <th style="text-align: center; width: 120px;">Stok Fisik</th>
+                                    <th style="text-align: center; width: 90px;">Selisih</th>
+                                    <th>Keterangan Selisih (Opsional)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="opnameFormTableBody">
+                                <!-- List barang diisi via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeOpnameModal()">Batal</button>
+                <button class="btn btn-primary" onclick="saveOpname()"><i class="fas fa-save" style="margin-right: 5px;"></i> Simpan Opname</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detail Stock Opname -->
+    <div id="detailOpnameModal" class="modal">
+        <div class="modal-content" style="max-width: 850px;">
+            <div class="modal-header">
+                <h3>Detail Hasil Stock Opname</h3>
+                <span class="close-btn" onclick="closeDetailOpnameModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="detailOpnameContent">
+                <!-- Rincian header diisi JS -->
+                <div class="form-grid" style="margin-bottom: 20px; font-size: 14px;">
+                    <div><strong>Tanggal:</strong> <span id="detTgl">-</span></div>
+                    <div><strong>Petugas:</strong> <span id="detPetugas">-</span></div>
+                    <div style="grid-column: span 2;"><strong>Keterangan:</strong> <span id="detKeterangan">-</span></div>
+                </div>
+
+                <div style="max-height: 350px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); background-color: var(--surface);">
+                    <table class="data-table" style="box-shadow: none; margin: 0;">
+                        <thead>
+                            <tr>
+                                <th>Kode</th>
+                                <th>Nama Barang</th>
+                                <th>Lokasi Rak</th>
+                                <th style="text-align: center;">Sistem</th>
+                                <th style="text-align: center;">Fisik</th>
+                                <th style="text-align: center;">Selisih</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailOpnameTableBody">
+                            <!-- Detail diisi JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDetailOpnameModal()">Tutup</button>
+                <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print" style="margin-right: 5px;"></i> Cetak</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../assets/js/script.js?v=2"></script>
+</body>
+</html>

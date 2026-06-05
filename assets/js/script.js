@@ -1068,6 +1068,9 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (document.querySelector('.dashboard-cards')) {
             renderDashboard();
         }
+        if (document.getElementById('opnameTableBody')) {
+            renderOpnameTable();
+        }
     }
 
     if (USER_SESSION && isLoginPage) {
@@ -1077,6 +1080,22 @@ document.addEventListener('DOMContentLoaded', async function () {
             window.location.href = BASE_URL + '/index.html';
         }
         return;
+    }
+
+    if (document.getElementById('opnameTableBody')) {
+        renderOpnameTable();
+        const searchInput = document.querySelector('.search-box input');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                renderOpnameTable(this.value);
+            });
+        }
+        const katFilter = document.getElementById('filterKategoriOpname');
+        if (katFilter) {
+            katFilter.addEventListener('change', function() {
+                renderOpnameFormItems(this.value);
+            });
+        }
     }
 });
 
@@ -2190,4 +2209,372 @@ window.resetLocalStorageCache = function() {
             window.location.reload();
         }, 1000);
     }
+};
+
+// ==========================================================
+// CYCLE COUNT / STOCK OPNAME CONTROLLER
+// ==========================================================
+window.currentOpnameValues = {};
+
+window.renderOpnameTable = async function(searchQuery = '') {
+    const tableBody = document.getElementById('opnameTableBody');
+    if (!tableBody) return;
+
+    let opnameList = [];
+    try {
+        const response = await fetch(BASE_URL + '/api/laporan/read_opname.php', { credentials: 'same-origin' });
+        const data = await response.json();
+        if (data.status === 'success') {
+            opnameList = data.data;
+            DB.set('ud_opname', opnameList);
+        } else {
+            opnameList = DB.get('ud_opname', []);
+        }
+    } catch (e) {
+        console.warn("Gagal terhubung ke API opname, menggunakan cache lokal:", e);
+        opnameList = DB.get('ud_opname', []);
+    }
+
+    tableBody.innerHTML = '';
+
+    const filtered = opnameList.filter(item => {
+        return (item.keterangan && item.keterangan.toLowerCase().includes(searchQuery.toLowerCase())) ||
+               (item.nama_user && item.nama_user.toLowerCase().includes(searchQuery.toLowerCase()));
+    });
+
+    if (filtered.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">Data Stock Opname tidak ditemukan</td></tr>';
+        return;
+    }
+
+    filtered.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${item.tgl_opname}</td>
+            <td style="font-weight: 500;">${item.keterangan || '-'}</td>
+            <td>${item.nama_user}</td>
+            <td style="text-align: center;">${item.total_item}</td>
+            <td style="text-align: center;">
+                <span class="badge" style="background-color: ${item.total_selisih_qty > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)'}; color: ${item.total_selisih_qty > 0 ? '#ef4444' : '#10b981'}; font-weight: 600;">
+                    ${item.total_selisih_qty} Item Berselisih
+                </span>
+            </td>
+            <td style="text-align: center;">
+                <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="showOpnameDetail(${item.id_opname})">
+                    <i class="fas fa-eye" style="margin-right: 4px;"></i> Detail
+                </button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+};
+
+window.openOpnameModal = async function() {
+    const modal = document.getElementById('opnameModal');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+    document.getElementById('tglOpname').value = new Date().toISOString().split('T')[0];
+    document.getElementById('keteranganOpname').value = '';
+    document.getElementById('filterKategoriOpname').value = '';
+
+    // Ambil list barang terbaru
+    let barangList = [];
+    try {
+        const res = await fetch(BASE_URL + '/api/barang/read.php', { credentials: 'same-origin' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            barangList = data.data;
+            DB.set('ud_barang', barangList);
+        } else {
+            barangList = DB.get('ud_barang', []);
+        }
+    } catch (e) {
+        barangList = DB.get('ud_barang', []);
+    }
+
+    // Initialize in-memory values
+    window.currentOpnameValues = {};
+    barangList.forEach(item => {
+        window.currentOpnameValues[item.id_barang] = {
+            id_barang: item.id_barang,
+            kode_barang: item.kode_barang,
+            nama_barang: item.nama_barang,
+            lokasi_rak: item.lokasi_rak || '-',
+            kategori: item.kategori,
+            stok_sistem: parseInt(item.stok) || 0,
+            stok_fisik: parseInt(item.stok) || 0,
+            keterangan: ''
+        };
+    });
+
+    window.renderOpnameFormItems();
+};
+
+window.closeOpnameModal = function() {
+    const modal = document.getElementById('opnameModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.renderOpnameFormItems = function(categoryFilter = '') {
+    const formTableBody = document.getElementById('opnameFormTableBody');
+    if (!formTableBody) return;
+
+    formTableBody.innerHTML = '';
+
+    const items = Object.values(window.currentOpnameValues).filter(item => {
+        return categoryFilter === '' || item.kategori === categoryFilter;
+    });
+
+    if (items.length === 0) {
+        formTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 15px;">Tidak ada barang dalam kategori ini</td></tr>';
+        return;
+    }
+
+    items.forEach(item => {
+        const row = document.createElement('tr');
+        const diff = item.stok_fisik - item.stok_sistem;
+        let diffText = '0';
+        let diffColor = 'inherit';
+        if (diff > 0) {
+            diffText = `+${diff}`;
+            diffColor = '#10b981';
+        } else if (diff < 0) {
+            diffText = `${diff}`;
+            diffColor = '#ef4444';
+        }
+
+        row.innerHTML = `
+            <td>
+                <div style="font-weight: 600; font-size: 13px;">${item.nama_barang}</div>
+                <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">${item.kode_barang}</div>
+            </td>
+            <td><span class="badge" style="background: rgba(99, 102, 241, 0.1); color: #6366f1; font-weight: 500;">${item.lokasi_rak}</span></td>
+            <td style="text-align: center; font-weight: 600;">${item.stok_sistem}</td>
+            <td style="text-align: center;">
+                <input type="number" class="fisik-input" data-id="${item.id_barang}" min="0" value="${item.stok_fisik}" style="width: 80px; padding: 6px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); text-align: center; outline: none; background-color: var(--surface);">
+            </td>
+            <td style="text-align: center; font-weight: 600; color: ${diffColor};" class="diff-span" data-id="${item.id_barang}">${diffText}</td>
+            <td>
+                <input type="text" class="ket-input" data-id="${item.id_barang}" value="${item.keterangan}" placeholder="Catatan selisih" style="width: 100%; padding: 6px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); outline: none; background-color: var(--surface);">
+            </td>
+        `;
+
+        formTableBody.appendChild(row);
+
+        // Bind events
+        const fisikInp = row.querySelector('.fisik-input');
+        const ketInp = row.querySelector('.ket-input');
+        const diffSpan = row.querySelector('.diff-span');
+
+        fisikInp.oninput = function() {
+            const val = parseInt(this.value);
+            const cleanVal = isNaN(val) ? 0 : val;
+            
+            // update in-memory state
+            window.currentOpnameValues[item.id_barang].stok_fisik = cleanVal;
+            
+            // update UI difference
+            const newDiff = cleanVal - item.stok_sistem;
+            if (newDiff > 0) {
+                diffSpan.innerText = `+${newDiff}`;
+                diffSpan.style.color = '#10b981';
+            } else if (newDiff < 0) {
+                diffSpan.innerText = `${newDiff}`;
+                diffSpan.style.color = '#ef4444';
+            } else {
+                diffSpan.innerText = '0';
+                diffSpan.style.color = 'inherit';
+            }
+        };
+
+        ketInp.oninput = function() {
+            window.currentOpnameValues[item.id_barang].keterangan = this.value;
+        };
+    });
+};
+
+window.saveOpname = function() {
+    const tgl = document.getElementById('tglOpname').value;
+    const ket = document.getElementById('keteranganOpname').value.trim();
+
+    if (!tgl || !ket) {
+        showToast('Tanggal dan keterangan opname wajib diisi!', 'error');
+        return;
+    }
+
+    const itemsToSave = Object.values(window.currentOpnameValues);
+
+    const btn = document.querySelector('#opnameModal .modal-footer .btn-primary');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Menyimpan...';
+    btn.disabled = true;
+
+    // Siapkan POST FormData
+    const formData = new FormData();
+    formData.append('tgl_opname', tgl);
+    formData.append('keterangan', ket);
+    formData.append('items', JSON.stringify(itemsToSave));
+
+    fetch(BASE_URL + '/api/laporan/save_opname.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showToast(data.message, 'success');
+            closeOpnameModal();
+            renderOpnameTable();
+        } else {
+            showToast(data.message, 'error');
+        }
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    })
+    .catch(error => {
+        console.warn("Gagal mengirim data opname ke server, menggunakan fallback offline:", error);
+
+        // --- FALLBACK OFFLINE LOCALSTORAGE ---
+        const opnameList = DB.get('ud_opname', []);
+        const barangList = DB.get('ud_barang', []);
+
+        const nextId = opnameList.length > 0 ? Math.max(...opnameList.map(o => o.id_opname)) + 1 : 1;
+        const totalItemsWithDiff = itemsToSave.filter(i => i.stok_fisik !== i.stok_sistem).length;
+
+        // update local stock for each adjusted item
+        itemsToSave.forEach(item => {
+            const target = barangList.find(b => b.id_barang === item.id_barang);
+            if (target) {
+                target.stok = item.stok_fisik;
+            }
+        });
+
+        // Simpan sesi opname local
+        const newLocalOpname = {
+            id_opname: nextId,
+            tgl_opname: tgl,
+            keterangan: ket,
+            nama_user: USER_SESSION ? USER_SESSION.nama_lengkap : 'Staf Gudang (Offline)',
+            total_item: itemsToSave.length,
+            total_selisih_qty: totalItemsWithDiff,
+            details: itemsToSave
+        };
+
+        opnameList.unshift(newLocalOpname); // add to top
+        DB.set('ud_opname', opnameList);
+        DB.set('ud_barang', barangList);
+
+        showToast('Stock Opname berhasil disimpan secara lokal! (Offline)', 'success');
+        closeOpnameModal();
+        renderOpnameTable();
+
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+};
+
+window.showOpnameDetail = async function(id) {
+    const modal = document.getElementById('detailOpnameModal');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+
+    document.getElementById('detTgl').innerText = 'Memuat...';
+    document.getElementById('detPetugas').innerText = 'Memuat...';
+    document.getElementById('detKeterangan').innerText = 'Memuat...';
+    
+    const detailTableBody = document.getElementById('detailOpnameTableBody');
+    detailTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 15px;">Memuat detail...</td></tr>';
+
+    let details = [];
+    let opnameHeader = null;
+
+    // Cari dari cache offline terlebih dahulu jika ada di lokal
+    const opnameList = DB.get('ud_opname', []);
+    const localOpname = opnameList.find(o => o.id_opname === id);
+
+    try {
+        const res = await fetch(BASE_URL + `/api/laporan/read_opname.php?action=detail&id_opname=${id}`, { credentials: 'same-origin' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            details = data.data;
+            if (localOpname) {
+                opnameHeader = localOpname;
+            } else {
+                // fallback header jika data local bersih
+                opnameHeader = {
+                    tgl_opname: details[0] ? new Date().toISOString().split('T')[0] : '-',
+                    nama_user: 'Sistem',
+                    keterangan: 'Detail Sesi'
+                };
+            }
+        } else {
+            if (localOpname) {
+                opnameHeader = localOpname;
+                details = localOpname.details || [];
+            }
+        }
+    } catch (e) {
+        console.warn("Gagal memuat detail dari server, menggunakan cache lokal:", e);
+        if (localOpname) {
+            opnameHeader = localOpname;
+            details = localOpname.details || [];
+        }
+    }
+
+    if (!opnameHeader) {
+        detailTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #ef4444; padding: 15px;">Detail opname tidak ditemukan</td></tr>';
+        return;
+    }
+
+    document.getElementById('detTgl').innerText = opnameHeader.tgl_opname;
+    document.getElementById('detPetugas').innerText = opnameHeader.nama_user;
+    document.getElementById('detKeterangan').innerText = opnameHeader.keterangan || '-';
+
+    detailTableBody.innerHTML = '';
+
+    if (details.length === 0) {
+        detailTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 15px;">Tidak ada detail item tercatat</td></tr>';
+        return;
+    }
+
+    details.forEach(item => {
+        const row = document.createElement('tr');
+        // adaptasikan key dari database vs key offline
+        const kode = item.kode_barang || item.kode_barang;
+        const nama = item.nama_barang || item.nama_barang;
+        const rak = item.lokasi_rak || item.lokasi_rak || '-';
+        const sistem = item.stok_sistem !== undefined ? item.stok_sistem : item.stok_sistem;
+        const fisik = item.stok_fisik !== undefined ? item.stok_fisik : item.stok_fisik;
+        const selisih = item.selisih !== undefined ? item.selisih : (fisik - sistem);
+        const ket = item.ket_selisih !== undefined ? item.ket_selisih : (item.keterangan || '-');
+
+        let diffText = '0';
+        let diffColor = 'inherit';
+        if (selisih > 0) {
+            diffText = `+${selisih}`;
+            diffColor = '#10b981';
+        } else if (selisih < 0) {
+            diffText = `${selisih}`;
+            diffColor = '#ef4444';
+        }
+
+        row.innerHTML = `
+            <td>${kode}</td>
+            <td style="font-weight: 500;">${nama}</td>
+            <td><span class="badge" style="background: rgba(99, 102, 241, 0.1); color: #6366f1; font-weight: 500;">${rak}</span></td>
+            <td style="text-align: center;">${sistem}</td>
+            <td style="text-align: center; font-weight: 600;">${fisik}</td>
+            <td style="text-align: center; font-weight: 600; color: ${diffColor};">${diffText}</td>
+            <td>${ket || '-'}</td>
+        `;
+        detailTableBody.appendChild(row);
+    });
+};
+
+window.closeDetailOpnameModal = function() {
+    const modal = document.getElementById('detailOpnameModal');
+    if (modal) modal.style.display = 'none';
 };
