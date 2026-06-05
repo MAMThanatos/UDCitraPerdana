@@ -1012,7 +1012,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 isLocalMock = true;
                 USER_SESSION = initialSession;
             }
-            if (!isLocalMock) {
+            if (!isLocalMock && !isLoginPage) {
                 localStorage.removeItem('ud_session');
                 USER_SESSION = null;
                 window.location.href = BASE_URL + '/views/auth/login.html';
