@@ -33,6 +33,9 @@ DROP TABLE IF EXISTS `detailkeluar`;
 DROP TABLE IF EXISTS `detailmasuk`;
 DROP TABLE IF EXISTS `transaksikeluar`;
 DROP TABLE IF EXISTS `transaksimasuk`;
+DROP TABLE IF EXISTS `detailopname`;
+DROP TABLE IF EXISTS `opname`;
+DROP TABLE IF EXISTS `mutasi`;
 DROP TABLE IF EXISTS `barang`;
 DROP TABLE IF EXISTS `kategori`;
 DROP TABLE IF EXISTS `supplier`;
@@ -189,6 +192,67 @@ CREATE TABLE `detailkeluar` (
   KEY `id_barang` (`id_barang`),
   CONSTRAINT `detailkeluar_ibfk_1` FOREIGN KEY (`id_keluar`) REFERENCES `transaksikeluar` (`id_keluar`) ON DELETE CASCADE,
   CONSTRAINT `detailkeluar_ibfk_2` FOREIGN KEY (`id_barang`) REFERENCES `barang` (`id_barang`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `opname`
+--
+
+CREATE TABLE `opname` (
+  `id_opname` int(11) NOT NULL AUTO_INCREMENT,
+  `id_user` int(11) NOT NULL,
+  `tgl_opname` date NOT NULL,
+  `keterangan` text DEFAULT NULL,
+  PRIMARY KEY (`id_opname`),
+  KEY `id_user` (`id_user`),
+  CONSTRAINT `opname_ibfk_1` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `detailopname`
+--
+
+CREATE TABLE `detailopname` (
+  `id_detail_opname` int(11) NOT NULL AUTO_INCREMENT,
+  `id_opname` int(11) NOT NULL,
+  `id_barang` int(11) NOT NULL,
+  `stok_sistem` int(11) NOT NULL,
+  `stok_fisik` int(11) NOT NULL,
+  `selisih` int(11) NOT NULL,
+  `keterangan` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id_detail_opname`),
+  KEY `id_opname` (`id_opname`),
+  KEY `id_barang` (`id_barang`),
+  CONSTRAINT `detailopname_ibfk_1` FOREIGN KEY (`id_opname`) REFERENCES `opname` (`id_opname`) ON DELETE CASCADE,
+  CONSTRAINT `detailopname_ibfk_2` FOREIGN KEY (`id_barang`) REFERENCES `barang` (`id_barang`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `mutasi`
+--
+
+CREATE TABLE `mutasi` (
+  `id_mutasi` int(11) NOT NULL AUTO_INCREMENT,
+  `id_barang` int(11) NOT NULL,
+  `id_user` int(11) NOT NULL,
+  `tgl_mutasi` date NOT NULL,
+  `no_mutasi` varchar(50) NOT NULL UNIQUE,
+  `gudang_asal` varchar(100) NOT NULL,
+  `gudang_tujuan` varchar(100) NOT NULL,
+  `jumlah` int(11) NOT NULL,
+  `biaya_kirim` double NOT NULL DEFAULT 0,
+  `keterangan` text DEFAULT NULL,
+  PRIMARY KEY (`id_mutasi`),
+  KEY `id_barang` (`id_barang`),
+  KEY `id_user` (`id_user`),
+  CONSTRAINT `mutasi_ibfk_1` FOREIGN KEY (`id_barang`) REFERENCES `barang` (`id_barang`) ON DELETE RESTRICT,
+  CONSTRAINT `mutasi_ibfk_2` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Enable foreign key checks

@@ -109,6 +109,8 @@ const DB = {
         
         this.get('ud_transaksi_keluar', []);
         
+        this.get('ud_mutasi', []);
+        
         this.get('ud_users', [
             { id: 1, nama: 'Administrator Super', username: 'admin', role: 'Admin / Owner' },
             { id: 2, nama: 'Budi Santoso', username: 'budi_gudang', role: 'Staf Gudang' }
@@ -163,7 +165,16 @@ const syncDatabase = async () => {
                 if (data && data.status === 'success') {
                     DB.set('ud_transaksi_keluar', data.data);
                 }
-            }).catch(e => console.warn("Gagal sinkronisasi transaksi keluar:", e))
+            }).catch(e => console.warn("Gagal sinkronisasi transaksi keluar:", e)),
+            
+        // 4. Sinkronisasi Mutasi Gudang
+        fetch(BASE_URL + '/api/transaksi/read_mutasi.php', { credentials: 'same-origin' })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.status === 'success') {
+                    DB.set('ud_mutasi', data.data);
+                }
+            }).catch(e => console.warn("Gagal sinkronisasi mutasi gudang:", e))
     ];
     
     // Admin mendapatkan otorisasi sinkronisasi daftar akun/user
@@ -941,6 +952,17 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (dateInput) dateInput.addEventListener('change', trigger);
     }
 
+    if (document.getElementById('mutasiTableBody')) {
+        renderMutasiTable();
+        const searchInput = document.getElementById('searchMutasi');
+        const dateInput = document.getElementById('filterTglMutasi');
+        const trigger = () => {
+            renderMutasiTable(searchInput ? searchInput.value : '', dateInput ? dateInput.value : '');
+        };
+        if (searchInput) searchInput.addEventListener('input', trigger);
+        if (dateInput) dateInput.addEventListener('change', trigger);
+    }
+
     if (document.getElementById('laporanStokTableBody')) {
         const searchInput = document.querySelector('.search-box input');
         const categorySelect = document.querySelector('.table-header-actions select');
@@ -1051,6 +1073,9 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
         if (document.getElementById('barangKeluarTableBody')) {
             renderBarangKeluarTable();
+        }
+        if (document.getElementById('mutasiTableBody')) {
+            renderMutasiTable();
         }
         if (document.getElementById('laporanStokTableBody')) {
             const searchInput = document.querySelector('.search-box input');
@@ -2577,4 +2602,225 @@ window.showOpnameDetail = async function(id) {
 window.closeDetailOpnameModal = function() {
     const modal = document.getElementById('detailOpnameModal');
     if (modal) modal.style.display = 'none';
+};
+
+// ==========================================================
+// WAREHOUSE MUTATION (MUTASI ANTAR GUDANG) CONTROLLER
+// ==========================================================
+
+window.renderMutasiTable = async function(searchQuery = '', dateFilter = '') {
+    const tableBody = document.getElementById('mutasiTableBody');
+    if (!tableBody) return;
+    
+    let mutasiList = [];
+    try {
+        const response = await fetch(BASE_URL + '/api/transaksi/read_mutasi.php', { credentials: 'same-origin' });
+        const data = await response.json();
+        if (data.status === 'success') {
+            mutasiList = data.data;
+            DB.set('ud_mutasi', mutasiList); // Sync cache
+        } else {
+            mutasiList = DB.get('ud_mutasi', []);
+        }
+    } catch (e) {
+        console.warn("Gagal terhubung ke API mutasi, menggunakan cache lokal:", e);
+        mutasiList = DB.get('ud_mutasi', []);
+    }
+    
+    tableBody.innerHTML = '';
+    
+    const filtered = mutasiList.filter(item => {
+        const matchesSearch = (item.no_mutasi && item.no_mutasi.toLowerCase().includes(searchQuery.toLowerCase())) || 
+                              (item.barang && item.barang.toLowerCase().includes(searchQuery.toLowerCase())) || 
+                              (item.keterangan && item.keterangan.toLowerCase().includes(searchQuery.toLowerCase())) || 
+                              (item.gudang_asal && item.gudang_asal.toLowerCase().includes(searchQuery.toLowerCase())) || 
+                              (item.gudang_tujuan && item.gudang_tujuan.toLowerCase().includes(searchQuery.toLowerCase()));
+        const matchesDate = dateFilter === '' || item.tanggal === dateFilter;
+        return matchesSearch && matchesDate;
+    });
+    
+    if (filtered.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 20px;">Data transaksi mutasi tidak ditemukan</td></tr>';
+        return;
+    }
+    
+    filtered.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${item.tanggal}</td>
+            <td style="font-weight: 600; font-family: monospace; color: var(--primary);">${item.no_mutasi}</td>
+            <td style="font-weight: 500;">${item.barang}</td>
+            <td><span class="badge" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">${item.gudang_asal}</span></td>
+            <td><span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">${item.gudang_tujuan}</span></td>
+            <td><strong>${item.qty}</strong></td>
+            <td>Rp ${(item.biaya_kirim || 0).toLocaleString('id-ID')}</td>
+            <td>${item.operator || '-'}</td>
+            <td><span style="font-size: 13px; color: var(--text-muted);">${item.keterangan || '-'}</span></td>
+        `;
+        tableBody.appendChild(row);
+    });
+};
+
+window.openModalMutasi = function() {
+    const modal = document.getElementById('mutasiModal');
+    if (!modal) return;
+    
+    modal.style.display = 'flex';
+    document.getElementById('formMutasi').reset();
+    
+    const dateInput = document.getElementById('tanggalMutasi');
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+    
+    // Auto-generate temporary transaction code
+    const today = new Date();
+    const dateStr = today.getFullYear() + String(today.getMonth() + 1).padStart(2, '0') + String(today.getDate()).padStart(2, '0');
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    document.getElementById('noMutasi').value = `MUT-${dateStr}-${rand}`;
+    
+    // Populate selectBarang
+    const selectBarang = document.getElementById('pilihBarangMutasi');
+    if (selectBarang) {
+        const barangList = DB.get('ud_barang', []);
+        selectBarang.innerHTML = '<option value="">-- Pilih Barang --</option>';
+        barangList.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item.id_barang || item.kode_barang; // use id_barang if available, else code
+            opt.textContent = `${item.kode_barang} - ${item.nama_barang} (Stok: ${item.stok})`;
+            selectBarang.appendChild(opt);
+        });
+    }
+};
+
+window.closeModalMutasi = function() {
+    const modal = document.getElementById('mutasiModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.saveMutasi = function() {
+    const form = document.getElementById('formMutasi');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const tanggal = document.getElementById('tanggalMutasi').value;
+    const noMutasi = document.getElementById('noMutasi').value;
+    const selectBarang = document.getElementById('pilihBarangMutasi');
+    const barangInput = selectBarang.value;
+    const selectedOption = selectBarang.options[selectBarang.selectedIndex];
+    if (!selectedOption || !selectedOption.text || selectedOption.text.indexOf(' - ') === -1) {
+        showToast('Pilih barang terlebih dahulu.', 'error');
+        return;
+    }
+    const barangName = selectedOption.text.split(' - ')[1].split(' (Stok:')[0];
+    const gudangAsal = document.getElementById('gudangAsal').value;
+    const gudangTujuan = document.getElementById('gudangTujuan').value;
+    const jumlah = parseInt(document.getElementById('jumlahMutasi').value) || 0;
+    const biayaKirim = parseFloat(document.getElementById('biayaKirim').value) || 0;
+    const keterangan = document.getElementById('keteranganMutasi').value.trim();
+    
+    if (gudangAsal === gudangTujuan) {
+        showToast('Gudang asal dan tujuan tidak boleh sama.', 'error');
+        return;
+    }
+    
+    if (jumlah <= 0) {
+        showToast('Jumlah mutasi harus lebih besar dari 0.', 'error');
+        return;
+    }
+
+    // Client-side stock check for validation
+    const barangList = DB.get('ud_barang', []);
+    const targetBarang = barangList.find(b => (b.id_barang == barangInput || b.kode_barang == barangInput));
+    
+    if (!targetBarang) {
+        showToast('Barang tidak ditemukan.', 'error');
+        return;
+    }
+
+    const isAsalCabang = gudangAsal.toLowerCase().includes('cabang');
+    const isTujuanCabang = gudangTujuan.toLowerCase().includes('cabang');
+
+    if (!isAsalCabang && isTujuanCabang) {
+        // Pusat -> Cabang: needs stock subtraction check
+        if (targetBarang.stok < jumlah) {
+            showToast(`Stok tidak mencukupi! Stok saat ini: ${targetBarang.stok} ${targetBarang.satuan || ''}, diminta: ${jumlah} ${targetBarang.satuan || ''}.`, 'error');
+            return;
+        }
+    }
+    
+    const btn = document.querySelector('#mutasiModal .modal-footer .btn-primary');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Menyimpan...';
+    btn.disabled = true;
+    
+    const formData = new FormData();
+    formData.append('tanggal', tanggal);
+    formData.append('no_mutasi', noMutasi);
+    formData.append('barang', barangInput);
+    formData.append('gudang_asal', gudangAsal);
+    formData.append('gudang_tujuan', gudangTujuan);
+    formData.append('jumlah', jumlah);
+    formData.append('biaya_kirim', biayaKirim);
+    formData.append('keterangan', keterangan);
+    
+    fetch(BASE_URL + '/api/transaksi/save_mutasi.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showToast(data.message, 'success');
+            closeModalMutasi();
+            renderMutasiTable();
+        } else {
+            showToast(data.message, 'error');
+        }
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    })
+    .catch(error => {
+        console.warn("Gagal mengirim data mutasi ke server, menggunakan fallback offline:", error);
+        
+        // --- FALLBACK OFFLINE LOCALSTORAGE ---
+        const mutasiList = DB.get('ud_mutasi', []);
+        
+        // Apply stock adjustment to client-side cache
+        if (isAsalCabang && !isTujuanCabang) {
+            // Cabang -> Pusat: increase stock
+            targetBarang.stok = Number(targetBarang.stok) + jumlah;
+        } else if (!isAsalCabang && isTujuanCabang) {
+            // Pusat -> Cabang: decrease stock
+            targetBarang.stok = Number(targetBarang.stok) - jumlah;
+        }
+        // internal: no total stock changes
+        
+        const nextId = mutasiList.length > 0 ? Math.max(...mutasiList.map(m => m.id_mutasi || 0)) + 1 : 1;
+        const newLocalMutasi = {
+            id_mutasi: nextId,
+            tanggal: tanggal,
+            no_mutasi: noMutasi,
+            barang: barangName,
+            kode_barang: targetBarang.kode_barang,
+            gudang_asal: gudangAsal,
+            gudang_tujuan: gudangTujuan,
+            qty: jumlah,
+            biaya_kirim: biayaKirim,
+            operator: USER_SESSION ? USER_SESSION.nama_lengkap : 'Staf Gudang (Offline)',
+            keterangan: keterangan
+        };
+        
+        mutasiList.unshift(newLocalMutasi);
+        DB.set('ud_mutasi', mutasiList);
+        DB.set('ud_barang', barangList);
+        
+        showToast('Transaksi Mutasi berhasil disimpan secara lokal! (Offline)', 'success');
+        closeModalMutasi();
+        renderMutasiTable();
+        
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
 };

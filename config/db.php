@@ -53,6 +53,24 @@ try {
         CONSTRAINT `detailopname_ibfk_1` FOREIGN KEY (`id_opname`) REFERENCES `opname` (`id_opname`) ON DELETE CASCADE,
         CONSTRAINT `detailopname_ibfk_2` FOREIGN KEY (`id_barang`) REFERENCES `barang` (`id_barang`) ON DELETE RESTRICT
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+    $conn->query("CREATE TABLE IF NOT EXISTS `mutasi` (
+        `id_mutasi` int(11) NOT NULL AUTO_INCREMENT,
+        `id_barang` int(11) NOT NULL,
+        `id_user` int(11) NOT NULL,
+        `tgl_mutasi` date NOT NULL,
+        `no_mutasi` varchar(50) NOT NULL UNIQUE,
+        `gudang_asal` varchar(100) NOT NULL,
+        `gudang_tujuan` varchar(100) NOT NULL,
+        `jumlah` int(11) NOT NULL,
+        `biaya_kirim` double NOT NULL DEFAULT 0,
+        `keterangan` text DEFAULT NULL,
+        PRIMARY KEY (`id_mutasi`),
+        KEY `id_barang` (`id_barang`),
+        KEY `id_user` (`id_user`),
+        CONSTRAINT `mutasi_ibfk_1` FOREIGN KEY (`id_barang`) REFERENCES `barang` (`id_barang`) ON DELETE RESTRICT,
+        CONSTRAINT `mutasi_ibfk_2` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`) ON DELETE RESTRICT
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
     
 } catch(Exception $e) {
     die("Error: " . $e->getMessage());
