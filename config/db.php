@@ -22,6 +22,12 @@ try {
         $conn->query("ALTER TABLE `user` ADD COLUMN `session_id` varchar(255) DEFAULT NULL");
     }
     
+    // Self-healing database check: pastikan kolom created_at ada di tabel barang
+    $check_created_at = $conn->query("SHOW COLUMNS FROM `barang` LIKE 'created_at'");
+    if ($check_created_at && $check_created_at->num_rows === 0) {
+        $conn->query("ALTER TABLE `barang` ADD COLUMN `created_at` timestamp NOT NULL DEFAULT current_timestamp()");
+    }
+    
 } catch(Exception $e) {
     die("Error: " . $e->getMessage());
 }

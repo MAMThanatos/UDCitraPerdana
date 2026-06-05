@@ -14,11 +14,29 @@ if (!isset($_SESSION['user_id'])) {
 $monthFilter = $_GET['month'] ?? '';
 
 try {
-    // 1. Ambil semua data barang
+    // 1. Ambil semua data barang (filter berdasarkan tanggal jika ada bulan terpilih)
     $sql_barang = "SELECT b.id_barang, b.kode_barang, b.nama_barang, b.stok AS stok_sekarang, k.nama_kategori AS kategori
                    FROM barang b
-                   JOIN kategori k ON b.id_kategori = k.id_kategori
-                   ORDER BY b.kode_barang ASC";
+                   JOIN kategori k ON b.id_kategori = k.id_kategori";
+    
+    if (!empty($monthFilter) && preg_match('/^\d{4}-\d{2}$/', $monthFilter)) {
+        $escaped_month = $conn->real_escape_string($monthFilter);
+        // Tampilkan barang yang didaftarkan pada atau sebelum bulan terpilih,
+        // ATAU barang yang memiliki riwayat transaksi masuk/keluar pada/sebelum bulan terpilih.
+        $sql_barang .= " WHERE (DATE_FORMAT(b.created_at, '%Y-%m') <= '$escaped_month'
+                         OR b.id_barang IN (
+                            SELECT id_barang FROM detailmasuk dm 
+                            JOIN transaksimasuk tm ON dm.id_masuk = tm.id_masuk 
+                            WHERE DATE_FORMAT(tm.tgl_masuk, '%Y-%m') <= '$escaped_month'
+                         )
+                         OR b.id_barang IN (
+                            SELECT id_barang FROM detailkeluar dk 
+                            JOIN transaksikeluar tk ON dk.id_keluar = tk.id_keluar 
+                            WHERE DATE_FORMAT(tk.tgl_keluar, '%Y-%m') <= '$escaped_month'
+                         ))";
+    }
+    
+    $sql_barang .= " ORDER BY b.kode_barang ASC";
     $res_barang = $conn->query($sql_barang);
     
     $report_data = [];
