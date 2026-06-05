@@ -281,77 +281,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Render awal secara instan dengan data cache jika ada
     if (USER_SESSION) {
         applySessionUI(USER_SESSION);
-        // Render dashboard awal secara instan menggunakan data lokal
-        if (document.querySelector('.dashboard-cards')) {
-            renderDashboard();
-        }
-    }
-
-    let isServerOnline = false;
-    // Cek Session (PHP Backend) di latar belakang
-    try {
-        const response = await fetch(BASE_URL + '/api/auth/me.php', { credentials: 'same-origin' });
-        const data = await response.json();
-        isServerOnline = true;
-        if (data.status === 'success') {
-            USER_SESSION = data.data;
-            localStorage.setItem('ud_session', JSON.stringify(USER_SESSION));
-            // Terapkan data sesi terbaru dari server
-            applySessionUI(USER_SESSION);
-        } else {
-            // Server online, tapi sesi kosong/kedaluwarsa
-            if (data.message && data.message.includes('perangkat lain')) {
-                localStorage.removeItem('ud_session');
-                USER_SESSION = null;
-                window.location.href = BASE_URL + '/views/auth/login.html?expired=device';
-                return;
-            }
-            
-            // Cek apakah ada sesi mock lokal
-            let isLocalMock = false;
-            if (initialSession && initialSession.isMock) {
-                isLocalMock = true;
-                USER_SESSION = initialSession;
-            }
-            
-            if (!isLocalMock) {
-                // Server online, dan tidak ada mock -> hapus sesi lokal untuk keamanan
-                localStorage.removeItem('ud_session');
-                USER_SESSION = null;
-            }
-        }
-    } catch (error) {
-        console.warn("Gagal mengecek session backend (PHP/Database mati), menggunakan local fallback:", error);
-    }
-
-    // Fallback ke LocalStorage jika backend offline
-    if (!isServerOnline && !USER_SESSION) {
-        if (initialSession) {
-            USER_SESSION = initialSession;
-        }
-    }
-
-    if (!USER_SESSION && !isLoginPage) {
-        window.location.href = BASE_URL + '/views/auth/login.html';
-        return;
-    }
-
-    // Lakukan sinkronisasi database server ke cache lokal jika server online & sesi terautentikasi
-    if (isServerOnline && USER_SESSION && !USER_SESSION.isMock) {
-        await syncDatabase();
-        // Render ulang dashboard setelah sinkronisasi selesai untuk menampilkan data terbaru dari server
-        if (document.querySelector('.dashboard-cards')) {
-            renderDashboard();
-        }
-    }
-
-    if (USER_SESSION && isLoginPage) {
-        if (USER_SESSION.role === 'Staf Gudang') {
-            window.location.href = BASE_URL + '/views/barang/data_barang.html';
-        } else {
-            window.location.href = BASE_URL + '/index.html';
-        }
-        return;
     }
 
     // Toggle Password Visibility untuk Login & Register
@@ -554,12 +483,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         
         filtered.forEach(item => {
             const row = document.createElement('tr');
+            const isKritis = Number(item.stok) <= Number(item.stok_minimum !== undefined && item.stok_minimum !== null && item.stok_minimum !== '' ? item.stok_minimum : 10);
             row.innerHTML = `
                 <td>${item.kode_barang}</td>
                 <td style="font-weight: 500;">${item.nama_barang}</td>
                 <td><span class="badge badge-info">${item.kategori}</span></td>
                 <td><span class="badge" style="background: rgba(99, 102, 241, 0.1); color: #6366f1; font-weight: 600; font-family: monospace;">${item.lokasi_rak || '-'}</span></td>
-                <td><strong style="color: ${item.stok <= (item.stok_minimum || 50) ? '#ef4444' : 'inherit'};">${item.stok}</strong></td>
+                <td><strong style="color: ${isKritis ? '#ef4444' : 'inherit'};">${item.stok}</strong></td>
                 <td>Rp ${(item.harga_beli || 0).toLocaleString('id-ID')}</td>
                 <td>Rp ${item.harga.toLocaleString('id-ID')}</td>
                 <td>
@@ -710,7 +640,17 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const matchesSearch = item.nama_barang.toLowerCase().includes(searchQuery.toLowerCase()) || 
                                        item.kode_barang.toLowerCase().includes(searchQuery.toLowerCase());
                 const matchesCategory = categoryFilter === '' || item.kategori === categoryFilter;
-                return matchesSearch && matchesCategory;
+                
+                let matchesMonth = true;
+                if (monthFilter !== '') {
+                    const createdMonth = item.created_at ? item.created_at.slice(0, 7) : '';
+                    const hasHistory = 
+                        masukList.some(t => t.barang === item.nama_barang && t.tanggal.slice(0, 7) <= monthFilter) ||
+                        keluarList.some(t => t.barang === item.nama_barang && t.tanggal.slice(0, 7) <= monthFilter);
+                    matchesMonth = (createdMonth === '' || createdMonth <= monthFilter || hasHistory);
+                }
+                
+                return matchesSearch && matchesCategory && matchesMonth;
             });
             
             if (filtered.length === 0) {
@@ -719,12 +659,32 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
             
             filtered.forEach(item => {
-                const itemMasuk = masukList.filter(t => t.barang === item.nama_barang && (monthFilter === '' || t.tanggal.startsWith(monthFilter)));
-                const itemKeluar = keluarList.filter(t => t.barang === item.nama_barang && (monthFilter === '' || t.tanggal.startsWith(monthFilter)));
-                const masukQty = itemMasuk.reduce((sum, t) => sum + parseInt(t.qty || 0), 0);
-                const keluarQty = itemKeluar.reduce((sum, t) => sum + parseInt(t.qty || 0), 0);
-                const akhir = parseInt(item.stok || 0);
-                const awal = akhir - masukQty + keluarQty;
+                let masukQty = 0;
+                let keluarQty = 0;
+                let akhir = Number(item.stok || 0);
+                let awal = akhir;
+                
+                if (monthFilter !== '') {
+                    const itemMasukCurr = masukList.filter(t => t.barang === item.nama_barang && t.tanggal.slice(0, 7) === monthFilter);
+                    const itemKeluarCurr = keluarList.filter(t => t.barang === item.nama_barang && t.tanggal.slice(0, 7) === monthFilter);
+                    masukQty = itemMasukCurr.reduce((sum, t) => sum + Number(t.qty || 0), 0);
+                    keluarQty = itemKeluarCurr.reduce((sum, t) => sum + Number(t.qty || 0), 0);
+                    
+                    const itemMasukAfter = masukList.filter(t => t.barang === item.nama_barang && t.tanggal.slice(0, 7) > monthFilter);
+                    const itemKeluarAfter = keluarList.filter(t => t.barang === item.nama_barang && t.tanggal.slice(0, 7) > monthFilter);
+                    const masukAfter = itemMasukAfter.reduce((sum, t) => sum + Number(t.qty || 0), 0);
+                    const keluarAfter = itemKeluarAfter.reduce((sum, t) => sum + Number(t.qty || 0), 0);
+                    
+                    akhir = Number(item.stok || 0) - masukAfter + keluarAfter;
+                    awal = akhir - masukQty + keluarQty;
+                } else {
+                    const itemMasukAll = masukList.filter(t => t.barang === item.nama_barang);
+                    const itemKeluarAll = keluarList.filter(t => t.barang === item.nama_barang);
+                    masukQty = itemMasukAll.reduce((sum, t) => sum + Number(t.qty || 0), 0);
+                    keluarQty = itemKeluarAll.reduce((sum, t) => sum + Number(t.qty || 0), 0);
+                    akhir = Number(item.stok || 0);
+                    awal = akhir - masukQty + keluarQty;
+                }
                 
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -831,9 +791,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         const keluarList = DB.get('ud_transaksi_keluar', []);
         
         const totalBarangCount = barangList.length;
-        const totalMasukQty = masukList.reduce((sum, t) => sum + parseInt(t.qty || 0), 0);
-        const totalKeluarQty = keluarList.reduce((sum, t) => sum + parseInt(t.qty || 0), 0);
-        const stokMenipisList = barangList.filter(item => item.stok <= (item.stok_minimum || 50));
+        const totalMasukQty = masukList.reduce((sum, t) => sum + Number(t.qty || 0), 0);
+        const totalKeluarQty = keluarList.reduce((sum, t) => sum + Number(t.qty || 0), 0);
+        
+        const stokMenipisList = barangList.filter(item => {
+            const minStock = (item.stok_minimum !== undefined && item.stok_minimum !== null && item.stok_minimum !== '') ? Number(item.stok_minimum) : 10;
+            return Number(item.stok || 0) <= minStock;
+        });
         const stokMenipisCount = stokMenipisList.length;
         
         const cardElements = cards.querySelectorAll('.card');
@@ -869,23 +833,34 @@ document.addEventListener('DOMContentLoaded', async function () {
             barangList.forEach(b => { itemKeluarTotals[b.nama_barang] = 0; });
             keluarList.forEach(t => {
                 if (itemKeluarTotals[t.barang] !== undefined) {
-                    itemKeluarTotals[t.barang] += parseInt(t.qty || 0);
+                    itemKeluarTotals[t.barang] += Number(t.qty || 0);
                 }
             });
-            const sortedPopuler = [...barangList].sort((a, b) => itemKeluarTotals[b.nama_barang] - itemKeluarTotals[a.nama_barang]);
+            
+            const sortedPopuler = barangList
+                .map(item => ({
+                    ...item,
+                    totalOut: itemKeluarTotals[item.nama_barang] || 0
+                }))
+                .filter(item => item.totalOut > 0)
+                .sort((a, b) => b.totalOut - a.totalOut);
+                
             populerCard.querySelector('.monitoring-header .badge-info').textContent = sortedPopuler.length;
             const populerListContainer = populerCard.querySelector('.monitoring-list');
             populerListContainer.innerHTML = '';
-            sortedPopuler.slice(0, 3).forEach(item => {
-                const totalOut = itemKeluarTotals[item.nama_barang];
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'product-item';
-                itemDiv.innerHTML = `
-                    <span class="product-name">${item.nama_barang}</span>
-                    <span class="product-stock" style="color: #059669; font-weight: 600;">Terjual: ${totalOut} ${item.satuan}</span>
-                `;
-                populerListContainer.appendChild(itemDiv);
-            });
+            if (sortedPopuler.length === 0) {
+                populerListContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 14px; padding: 10px 0;">Belum ada produk populer (belum ada penjualan).</div>';
+            } else {
+                sortedPopuler.slice(0, 3).forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'product-item';
+                    itemDiv.innerHTML = `
+                        <span class="product-name">${item.nama_barang}</span>
+                        <span class="product-stock" style="color: #059669; font-weight: 600;">Terjual: ${item.totalOut} ${item.satuan}</span>
+                    `;
+                    populerListContainer.appendChild(itemDiv);
+                });
+            }
             
             const aktivitasCard = monitoringCards[2];
             const combinedActivities = [];
@@ -1013,6 +988,82 @@ document.addEventListener('DOMContentLoaded', async function () {
                 userDropdownMenu.classList.remove('active');
             }
         });
+    }
+
+    // --- SINKRONISASI & VERIFIKASI BACKEND DI LATAR BELAKANG ---
+    let isServerOnline = false;
+    try {
+        const response = await fetch(BASE_URL + '/api/auth/me.php', { credentials: 'same-origin' });
+        const data = await response.json();
+        isServerOnline = true;
+        if (data.status === 'success') {
+            USER_SESSION = data.data;
+            localStorage.setItem('ud_session', JSON.stringify(USER_SESSION));
+            applySessionUI(USER_SESSION);
+        } else {
+            if (data.message && data.message.includes('perangkat lain')) {
+                localStorage.removeItem('ud_session');
+                USER_SESSION = null;
+                window.location.href = BASE_URL + '/views/auth/login.html?expired=device';
+                return;
+            }
+            let isLocalMock = false;
+            if (initialSession && initialSession.isMock) {
+                isLocalMock = true;
+                USER_SESSION = initialSession;
+            }
+            if (!isLocalMock) {
+                localStorage.removeItem('ud_session');
+                USER_SESSION = null;
+                window.location.href = BASE_URL + '/views/auth/login.html';
+                return;
+            }
+        }
+    } catch (error) {
+        console.warn("Gagal mengecek session backend (PHP/Database mati), menggunakan local fallback:", error);
+    }
+
+    if (!isServerOnline && !USER_SESSION) {
+        if (initialSession) {
+            USER_SESSION = initialSession;
+        }
+    }
+
+    if (!USER_SESSION && !isLoginPage) {
+        window.location.href = BASE_URL + '/views/auth/login.html';
+        return;
+    }
+
+    if (isServerOnline && USER_SESSION && !USER_SESSION.isMock) {
+        await syncDatabase();
+        // Re-render UI dengan data terbaru dari server
+        if (document.getElementById('barangTableBody')) {
+            renderBarangTable();
+        }
+        if (document.getElementById('barangMasukTableBody')) {
+            renderBarangMasukTable();
+        }
+        if (document.getElementById('barangKeluarTableBody')) {
+            renderBarangKeluarTable();
+        }
+        if (document.getElementById('laporanStokTableBody')) {
+            renderLaporanStokTable();
+        }
+        if (document.getElementById('manajemenAkunTableBody')) {
+            renderUserTable();
+        }
+        if (document.querySelector('.dashboard-cards')) {
+            renderDashboard();
+        }
+    }
+
+    if (USER_SESSION && isLoginPage) {
+        if (USER_SESSION.role === 'Staf Gudang') {
+            window.location.href = BASE_URL + '/views/barang/data_barang.html';
+        } else {
+            window.location.href = BASE_URL + '/index.html';
+        }
+        return;
     }
 });
 
@@ -1155,7 +1206,8 @@ window.saveBarang = function() {
                 berat: beratBarang,
                 dimensi: dimensiBarang,
                 lokasi_rak: lokasiRak,
-                stok_minimum: stokBarang <= 100 ? 30 : 50
+                stok_minimum: stokBarang <= 100 ? 30 : 50,
+                created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
             });
             DB.set('ud_barang', barangList);
             showToast('Data barang ditambahkan secara lokal! (Offline)', 'success');
