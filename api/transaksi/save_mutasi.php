@@ -133,4 +133,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conn->close();
     exit;
 }
+
+// --- HANDLE DELETE METHOD: STOCK ROLLBACK AND DELETE ---
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE' || (isset($_POST['_method']) && $_POST['_method'] === 'DELETE')) {
+    $id_mutasi = (int)($_POST['id_mutasi'] ?? $_GET['id_mutasi'] ?? 0);
+    
+    if ($id_mutasi <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'ID transaksi mutasi tidak valid.']);
+        exit;
+    }
+    
+    $conn->begin_transaction();
+    try {
+        // Find mutation details
+        $stmt_mut = $conn->prepare("SELECT id_barang, gudang_asal, gudang_tujuan, jumlah FROM mutasi WHERE id_mutasi = ?");
+        $stmt_mut->bind_param("i", $id_mutasi);
+        $stmt_mut->execute();
+        $res_mut = $stmt_mut->get_result();
+        
+        if ($res_mut->num_rows !== 1) {
+            throw new Exception("Transaksi mutasi tidak ditemukan.");
+        }
+        
+        $row_mut = $res_mut->fetch_assoc();
+        $id_barang = $row_mut['id_barang'];
+        $gudang_asal = $row_mut['gudang_asal'];
+        $gudang_tujuan = $row_mut['gudang_tujuan'];
+        $jumlah = (int)$row_mut['jumlah'];
+        $stmt_mut->close();
+        
+        // Reverse stock logic
+        $is_asal_cabang = (strpos(strtolower($gudang_asal), 'cabang') !== false);
+        $is_tujuan_cabang = (strpos(strtolower($gudang_tujuan), 'cabang') !== false);
+        
+        if ($is_asal_cabang && !$is_tujuan_cabang) {
+            // Original: Cabang -> Pusat (increased local stock)
+            // Rollback: decrease local stock
+            $stmt_upd = $conn->prepare("UPDATE barang SET stok = GREATEST(0, stok - ?) WHERE id_barang = ?");
+            $stmt_upd->bind_param("ii", $jumlah, $id_barang);
+            $stmt_upd->execute();
+            $stmt_upd->close();
+        } else if (!$is_asal_cabang && $is_tujuan_cabang) {
+            // Original: Pusat -> Cabang (decreased local stock)
+            // Rollback: increase local stock
+            $stmt_upd = $conn->prepare("UPDATE barang SET stok = stok + ? WHERE id_barang = ?");
+            $stmt_upd->bind_param("ii", $jumlah, $id_barang);
+            $stmt_upd->execute();
+            $stmt_upd->close();
+        }
+        
+        // Delete mutation log
+        $stmt_del = $conn->prepare("DELETE FROM mutasi WHERE id_mutasi = ?");
+        $stmt_del->bind_param("i", $id_mutasi);
+        $stmt_del->execute();
+        $stmt_del->close();
+        
+        $conn->commit();
+        echo json_encode(['status' => 'success', 'message' => 'Transaksi mutasi berhasil dihapus dan stok disesuaikan!']);
+        
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo json_encode(['status' => 'error', 'message' => 'Gagal menghapus mutasi: ' . $e->getMessage()]);
+    }
+    $conn->close();
+    exit;
+}
 ?>

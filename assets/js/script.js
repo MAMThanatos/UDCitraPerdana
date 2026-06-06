@@ -2640,7 +2640,7 @@ window.renderMutasiTable = async function(searchQuery = '', dateFilter = '') {
     });
     
     if (filtered.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 20px;">Data transaksi mutasi tidak ditemukan</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 20px;">Data transaksi mutasi tidak ditemukan</td></tr>';
         return;
     }
     
@@ -2656,6 +2656,10 @@ window.renderMutasiTable = async function(searchQuery = '', dateFilter = '') {
             <td>Rp ${(item.biaya_kirim || 0).toLocaleString('id-ID')}</td>
             <td>${item.operator || '-'}</td>
             <td><span style="font-size: 13px; color: var(--text-muted);">${item.keterangan || '-'}</span></td>
+            <td>
+                <button class="btn-icon" style="color: #6366f1; background: rgba(99, 102, 241, 0.1);" onclick="showToast('No. Mutasi: ${item.no_mutasi} | Ongkir: Rp ${(item.biaya_kirim || 0).toLocaleString('id-ID')} | Ket: ${item.keterangan || '-'}', 'info')" title="Detail"><i class="fas fa-eye"></i></button>
+                <button class="btn-icon btn-delete" onclick="deleteMutasi(${item.id_mutasi})" title="Hapus Data"><i class="fas fa-trash"></i></button>
+            </td>
         `;
         tableBody.appendChild(row);
     });
@@ -2822,5 +2826,72 @@ window.saveMutasi = function() {
         
         btn.innerHTML = originalText;
         btn.disabled = false;
+    });
+};
+
+window.deleteMutasi = function(id) {
+    if (!confirm("Apakah Anda yakin ingin menghapus transaksi mutasi ini? Stok barang akan dikembalikan ke kondisi semula.")) {
+        return;
+    }
+    
+    fetch(BASE_URL + '/api/transaksi/save_mutasi.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+            '_method': 'DELETE',
+            'id_mutasi': id
+        }),
+        credentials: 'same-origin'
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showToast(data.message, 'success');
+            renderMutasiTable();
+        } else {
+            showToast(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.warn("Gagal menghapus mutasi di server, menggunakan fallback offline:", error);
+        
+        // Fallback offline
+        const mutasiList = DB.get('ud_mutasi', []);
+        const barangList = DB.get('ud_barang', []);
+        
+        const targetMutasiIndex = mutasiList.findIndex(m => m.id_mutasi === id);
+        if (targetMutasiIndex === -1) {
+            showToast('Transaksi mutasi tidak ditemukan secara lokal.', 'error');
+            return;
+        }
+        
+        const targetMut = mutasiList[targetMutasiIndex];
+        
+        // Cari barang
+        const targetBarang = barangList.find(b => (b.id_barang == targetMut.id_barang || b.kode_barang == targetMut.kode_barang || b.nama_barang == targetMut.barang));
+        
+        if (targetBarang) {
+            const isAsalCabang = targetMut.gudang_asal.toLowerCase().includes('cabang');
+            const isTujuanCabang = targetMut.gudang_tujuan.toLowerCase().includes('cabang');
+            
+            if (isAsalCabang && !isTujuanCabang) {
+                // Original: Cabang -> Pusat (increased stock)
+                // Rollback: decrease stock
+                targetBarang.stok = Math.max(0, Number(targetBarang.stok) - Number(targetMut.qty));
+            } else if (!isAsalCabang && isTujuanCabang) {
+                // Original: Pusat -> Cabang (decreased stock)
+                // Rollback: increase stock
+                targetBarang.stok = Number(targetBarang.stok) + Number(targetMut.qty);
+            }
+        }
+        
+        mutasiList.splice(targetMutasiIndex, 1);
+        DB.set('ud_mutasi', mutasiList);
+        DB.set('ud_barang', barangList);
+        
+        showToast('Transaksi mutasi berhasil dihapus secara lokal! (Offline)', 'success');
+        renderMutasiTable();
     });
 };
