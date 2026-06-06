@@ -1143,6 +1143,8 @@ window.saveBarang = function() {
     const deskripsiBarang = document.getElementById('deskripsiBarang').value.trim() || '-';
     const kategoriBarang = document.getElementById('kategoriBarang').value;
     const stokBarang = parseInt(document.getElementById('stokBarang').value || 0);
+    const satuanBarangEl = document.getElementById('satuanBarang');
+    const satuan = (satuanBarangEl && satuanBarangEl.value) ? satuanBarangEl.value.trim() : 'Pcs';
     const beratBarangEl = document.getElementById('beratBarang');
     const beratBarang = (beratBarangEl && beratBarangEl.value) ? beratBarangEl.value.trim() : '-';
     const dimensiBarangEl = document.getElementById('dimensiBarang');
@@ -1156,27 +1158,6 @@ window.saveBarang = function() {
     if (finalKodeBarang === '') {
         const maxId = barangList.length > 0 ? Math.max(...barangList.map(b => parseInt(b.id_barang) || 0)) : 0;
         finalKodeBarang = 'BRG-' + String(maxId + 1).padStart(3, '0');
-    }
-    
-    // Logika Satuan yang realistis berdasarkan kategori toko bangunan sederhana
-    let satuan = 'Pcs';
-    if (kategoriBarang === 'Bahan Bangunan') {
-        if (namaBarang.toLowerCase().includes('semen')) satuan = 'Zak';
-        else if (namaBarang.toLowerCase().includes('besi') || namaBarang.toLowerCase().includes('baja')) satuan = 'Batang';
-        else if (namaBarang.toLowerCase().includes('pasir') || namaBarang.toLowerCase().includes('split') || namaBarang.toLowerCase().includes('tanah')) satuan = 'Kubik';
-        else if (namaBarang.toLowerCase().includes('bata') || namaBarang.toLowerCase().includes('genteng') || namaBarang.toLowerCase().includes('paving')) satuan = 'Pcs';
-    } else if (kategoriBarang === 'Pipa & Saniter') {
-        if (namaBarang.toLowerCase().includes('pipa')) satuan = 'Batang';
-        else if (namaBarang.toLowerCase().includes('selang')) satuan = 'Meter';
-        else satuan = 'Pcs';
-    } else if (kategoriBarang === 'Cat & Finishing') {
-        if (namaBarang.toLowerCase().includes('cat')) satuan = 'Pail';
-        else if (namaBarang.toLowerCase().includes('tiner')) satuan = 'Kaleng';
-        else satuan = 'Pcs';
-    } else if (kategoriBarang === 'Peralatan & Perkakas') {
-        if (namaBarang.toLowerCase().includes('paku')) satuan = 'Kotak';
-        else if (namaBarang.toLowerCase().includes('kawat')) satuan = 'Roll';
-        else satuan = 'Pcs';
     }
     
     const editId = form.getAttribute('data-edit-id');
@@ -1750,6 +1731,8 @@ window.openModal = function(action, id = null) {
                 document.getElementById('kategoriBarang').value = item.kategori;
                 document.getElementById('stokBarang').value = item.stok;
                 document.getElementById('stokBarang').readOnly = true;
+                const satuanEl = document.getElementById('satuanBarang');
+                if (satuanEl) satuanEl.value = item.satuan || '';
                 const beratEl = document.getElementById('beratBarang');
                 if (beratEl) beratEl.value = item.berat || '';
                 const dimensiEl = document.getElementById('dimensiBarang');
