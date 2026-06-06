@@ -2365,19 +2365,21 @@ window.openOpnameModal = async function() {
         barangList = DB.get('ud_barang', []);
     }
 
-    // Initialize in-memory values
+    // Initialize in-memory values — semua item otomatis diikutsertakan
     window.currentOpnameValues = {};
     barangList.forEach(item => {
+        const stok = parseInt(item.stok) || 0;
         window.currentOpnameValues[item.id_barang] = {
             id_barang: item.id_barang,
             kode_barang: item.kode_barang,
             nama_barang: item.nama_barang,
             lokasi_rak: item.lokasi_rak || '-',
             kategori: item.kategori,
-            stok_sistem: parseInt(item.stok) || 0,
-            stok_fisik: parseInt(item.stok) || 0,
+            stok_sistem: stok,
+            stok_fisik: stok,
+            stok_awal: stok,   // simpan nilai awal untuk deteksi perubahan
             keterangan: '',
-            checked: false
+            checked: true
         };
     });
 
@@ -2387,6 +2389,19 @@ window.openOpnameModal = async function() {
 window.closeOpnameModal = function() {
     const modal = document.getElementById('opnameModal');
     if (modal) modal.style.display = 'none';
+};
+
+// Helper: hitung & tampilkan counter perubahan
+window.updateOpnameCounter = function() {
+    const counter = document.getElementById('opnameChangeCounter');
+    if (!counter) return;
+    const all = Object.values(window.currentOpnameValues);
+    const changed = all.filter(i => i.stok_fisik !== i.stok_awal || i.keterangan !== '');
+    if (changed.length === 0) {
+        counter.innerHTML = `<span style="color: var(--text-muted);">Ubah stok fisik barang yang perlu disesuaikan</span>`;
+    } else {
+        counter.innerHTML = `<span style="background: rgba(16,185,129,0.12); color: #10b981; padding: 3px 10px; border-radius: 20px; font-weight: 600;">✓ ${changed.length} dari ${all.length} item diubah</span>`;
+    }
 };
 
 window.renderOpnameFormItems = function(categoryFilter = '') {
@@ -2400,7 +2415,8 @@ window.renderOpnameFormItems = function(categoryFilter = '') {
     });
 
     if (items.length === 0) {
-        formTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 15px;">Tidak ada barang dalam kategori ini</td></tr>';
+        formTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 15px;">Tidak ada barang dalam kategori ini</td></tr>';
+        window.updateOpnameCounter();
         return;
     }
 
@@ -2417,10 +2433,14 @@ window.renderOpnameFormItems = function(categoryFilter = '') {
             diffColor = '#ef4444';
         }
 
+        // Highlight baris jika sudah diubah dari nilai awal
+        const isModified = item.stok_fisik !== item.stok_awal || item.keterangan !== '';
+        if (isModified) {
+            row.style.backgroundColor = 'rgba(245, 158, 11, 0.06)';
+            row.style.borderLeft = '3px solid #f59e0b';
+        }
+
         row.innerHTML = `
-            <td style="text-align: center;">
-                <input type="checkbox" class="audit-checkbox" data-id="${item.id_barang}" ${item.checked ? 'checked' : ''}>
-            </td>
             <td>
                 <div style="font-weight: 600; font-size: 13px;">${item.nama_barang}</div>
                 <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">${item.kode_barang}</div>
@@ -2428,7 +2448,7 @@ window.renderOpnameFormItems = function(categoryFilter = '') {
             <td><span class="badge" style="background: rgba(99, 102, 241, 0.1); color: #6366f1; font-weight: 500;">${item.lokasi_rak}</span></td>
             <td style="text-align: center; font-weight: 600;">${item.stok_sistem}</td>
             <td style="text-align: center;">
-                <input type="number" class="fisik-input" data-id="${item.id_barang}" min="0" value="${item.stok_fisik}" style="width: 80px; padding: 6px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); text-align: center; outline: none; background-color: var(--surface);">
+                <input type="number" class="fisik-input" data-id="${item.id_barang}" min="0" value="${item.stok_fisik}" style="width: 80px; padding: 6px; border: 1px solid ${isModified ? '#f59e0b' : 'var(--border-color)'}; border-radius: var(--radius-sm); text-align: center; outline: none; background-color: var(--surface);">
             </td>
             <td style="text-align: center; font-weight: 600; color: ${diffColor};" class="diff-span" data-id="${item.id_barang}">${diffText}</td>
             <td>
@@ -2438,26 +2458,17 @@ window.renderOpnameFormItems = function(categoryFilter = '') {
 
         formTableBody.appendChild(row);
 
-        // Bind events
-        const chk = row.querySelector('.audit-checkbox');
         const fisikInp = row.querySelector('.fisik-input');
         const ketInp = row.querySelector('.ket-input');
         const diffSpan = row.querySelector('.diff-span');
 
-        chk.onchange = function() {
-            window.currentOpnameValues[item.id_barang].checked = this.checked;
-        };
-
         fisikInp.oninput = function() {
             const val = parseInt(this.value);
             const cleanVal = isNaN(val) ? 0 : val;
-            
-            // update in-memory state
+
             window.currentOpnameValues[item.id_barang].stok_fisik = cleanVal;
-            window.currentOpnameValues[item.id_barang].checked = true;
-            if (chk) chk.checked = true;
-            
-            // update UI difference
+
+            // update selisih UI
             const newDiff = cleanVal - item.stok_sistem;
             if (newDiff > 0) {
                 diffSpan.innerText = `+${newDiff}`;
@@ -2469,14 +2480,30 @@ window.renderOpnameFormItems = function(categoryFilter = '') {
                 diffSpan.innerText = '0';
                 diffSpan.style.color = 'inherit';
             }
+
+            // highlight baris jika berbeda dari nilai awal
+            const nowModified = cleanVal !== window.currentOpnameValues[item.id_barang].stok_awal
+                             || window.currentOpnameValues[item.id_barang].keterangan !== '';
+            row.style.backgroundColor = nowModified ? 'rgba(245, 158, 11, 0.06)' : '';
+            row.style.borderLeft = nowModified ? '3px solid #f59e0b' : '';
+            this.style.borderColor = nowModified ? '#f59e0b' : 'var(--border-color)';
+
+            window.updateOpnameCounter();
         };
 
         ketInp.oninput = function() {
             window.currentOpnameValues[item.id_barang].keterangan = this.value;
-            window.currentOpnameValues[item.id_barang].checked = true;
-            if (chk) chk.checked = true;
+
+            const nowModified = window.currentOpnameValues[item.id_barang].stok_fisik !== window.currentOpnameValues[item.id_barang].stok_awal
+                             || this.value !== '';
+            row.style.backgroundColor = nowModified ? 'rgba(245, 158, 11, 0.06)' : '';
+            row.style.borderLeft = nowModified ? '3px solid #f59e0b' : '';
+
+            window.updateOpnameCounter();
         };
     });
+
+    window.updateOpnameCounter();
 };
 
 window.saveOpname = function() {
@@ -2488,11 +2515,11 @@ window.saveOpname = function() {
         return;
     }
 
-    // Hanya simpan barang yang terpilih (checked)
-    const itemsToSave = Object.values(window.currentOpnameValues).filter(i => i.checked);
+    // Simpan semua item (opname mencatat seluruh stok, bukan hanya yang berubah)
+    const itemsToSave = Object.values(window.currentOpnameValues);
 
     if (itemsToSave.length === 0) {
-        showToast('Pilih minimal 1 barang untuk di-opname (centang kolom Pilih)!', 'error');
+        showToast('Tidak ada data barang. Pastikan data barang sudah diisi terlebih dahulu.', 'error');
         return;
     }
 
@@ -2658,6 +2685,7 @@ window.editOpname = async function(id) {
     // Isi currentOpnameValues berdasarkan detail sesi opname lama, tandai checked: true
     details.forEach(item => {
         const idBarang = item.id_barang;
+        const stokFisik = parseInt(item.stok_fisik) || 0;
         window.currentOpnameValues[idBarang] = {
             id_barang: idBarang,
             kode_barang: item.kode_barang,
@@ -2665,7 +2693,8 @@ window.editOpname = async function(id) {
             lokasi_rak: item.lokasi_rak || '-',
             kategori: item.kategori || '',
             stok_sistem: parseInt(item.stok_sistem) || 0,
-            stok_fisik: parseInt(item.stok_fisik) || 0,
+            stok_fisik: stokFisik,
+            stok_awal: stokFisik,   // nilai awal saat edit dibuka (untuk deteksi perubahan)
             keterangan: item.ket_selisih || item.keterangan || '',
             checked: true
         };
