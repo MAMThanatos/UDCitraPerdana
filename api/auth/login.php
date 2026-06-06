@@ -35,13 +35,6 @@ try {
             $_SESSION['nama_lengkap'] = $user['nama_lengkap'];
             $_SESSION['role'] = $user['role'];
             
-            // Simpan session ID ke database untuk mencegah concurrent login (Single Session Enforcement)
-            $current_session_id = session_id();
-            $stmt_sess = $conn->prepare("UPDATE user SET session_id = ? WHERE id_user = ?");
-            $stmt_sess->bind_param("si", $current_session_id, $user['id_user']);
-            $stmt_sess->execute();
-            $stmt_sess->close();
-            
             echo json_encode([
                 'status' => 'success', 
                 'message' => 'Login berhasil! Mengalihkan...',
