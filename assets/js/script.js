@@ -640,6 +640,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
         
         laporanStokTableBody.innerHTML = '';
+        let totalAssetValue = 0;
         
         if (isOffline) {
             // --- OFFLINE FALLBACK CALCULATION ---
@@ -664,7 +665,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             });
             
             if (filtered.length === 0) {
-                laporanStokTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Laporan tidak ditemukan</td></tr>';
+                laporanStokTableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 20px;">Laporan tidak ditemukan</td></tr>';
                 return;
             }
             
@@ -696,6 +697,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                     awal = akhir - masukQty + keluarQty;
                 }
                 
+                const hargaBeli = Number(item.harga_beli || 0);
+                const assetValue = akhir * hargaBeli;
+                totalAssetValue += assetValue;
+                
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${item.kode_barang}</td>
@@ -705,6 +710,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                     <td style="text-align: center; color: #059669; font-weight: 600;">+ ${masukQty}</td>
                     <td style="text-align: center; color: #e11d48; font-weight: 600;">- ${keluarQty}</td>
                     <td style="text-align: center; font-weight: bold; background-color: #f8fafc;">${akhir}</td>
+                    <td style="text-align: right;">Rp ${hargaBeli.toLocaleString('id-ID')}</td>
+                    <td style="text-align: right; font-weight: 500; color: var(--primary);">Rp ${assetValue.toLocaleString('id-ID')}</td>
                 `;
                 laporanStokTableBody.appendChild(row);
             });
@@ -718,11 +725,15 @@ document.addEventListener('DOMContentLoaded', async function () {
             });
             
             if (filtered.length === 0) {
-                laporanStokTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Laporan tidak ditemukan</td></tr>';
+                laporanStokTableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 20px;">Laporan tidak ditemukan</td></tr>';
                 return;
             }
             
             filtered.forEach(item => {
+                const hargaBeli = Number(item.harga_beli || 0);
+                const assetValue = Number(item.akhir || 0) * hargaBeli;
+                totalAssetValue += assetValue;
+                
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${item.kode_barang}</td>
@@ -732,10 +743,23 @@ document.addEventListener('DOMContentLoaded', async function () {
                     <td style="text-align: center; color: #059669; font-weight: 600;">+ ${item.masuk}</td>
                     <td style="text-align: center; color: #e11d48; font-weight: 600;">- ${item.keluar}</td>
                     <td style="text-align: center; font-weight: bold; background-color: #f8fafc;">${item.akhir}</td>
+                    <td style="text-align: right;">Rp ${hargaBeli.toLocaleString('id-ID')}</td>
+                    <td style="text-align: right; font-weight: 500; color: var(--primary);">Rp ${assetValue.toLocaleString('id-ID')}</td>
                 `;
                 laporanStokTableBody.appendChild(row);
             });
         }
+        
+        // Render Summary Total Row
+        const summaryRow = document.createElement('tr');
+        summaryRow.style.fontWeight = 'bold';
+        summaryRow.style.backgroundColor = '#f1f5f9';
+        summaryRow.style.borderTop = '2px solid var(--border-color)';
+        summaryRow.innerHTML = `
+            <td colspan="8" style="text-align: right; padding: 14px 18px; color: var(--text-main);">Total Nilai Aset Gudang:</td>
+            <td style="text-align: right; color: #0f172a; font-size: 15px; padding: 14px 18px; font-weight: 700;">Rp ${totalAssetValue.toLocaleString('id-ID')}</td>
+        `;
+        laporanStokTableBody.appendChild(summaryRow);
     };
 
     window.renderUserTable = async function(searchQuery = '') {

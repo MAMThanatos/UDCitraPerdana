@@ -15,7 +15,7 @@ $monthFilter = $_GET['month'] ?? '';
 
 try {
     // 1. Ambil semua data barang (filter berdasarkan tanggal jika ada bulan terpilih)
-    $sql_barang = "SELECT b.id_barang, b.kode_barang, b.nama_barang, b.stok AS stok_sekarang, k.nama_kategori AS kategori
+    $sql_barang = "SELECT b.id_barang, b.kode_barang, b.nama_barang, b.stok AS stok_sekarang, b.harga_beli, k.nama_kategori AS kategori
                    FROM barang b
                    JOIN kategori k ON b.id_kategori = k.id_kategori";
     
@@ -130,6 +130,7 @@ try {
             'kode_barang' => $row['kode_barang'],
             'nama_barang' => $row['nama_barang'],
             'kategori' => $row['kategori'],
+            'harga_beli' => (float)$row['harga_beli'],
             'awal' => $awal,
             'masuk' => $masuk_qty,
             'keluar' => $keluar_qty,
