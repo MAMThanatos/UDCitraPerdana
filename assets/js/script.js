@@ -559,7 +559,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 <td><span class="badge" style="background-color: #d1fae5; color: #059669; font-weight: 600;">+ ${item.qty}</span></td>
                 <td><span class="badge ${item.qc && item.qc.includes('Baik') ? 'badge-success' : (item.qc && item.qc.includes('Rusak') ? 'badge-danger' : 'badge-warning')}">${item.qc || 'Baik (Lolos QC)'}</span></td>
                 <td>
-                    <button class="btn-icon btn-edit" onclick="showToast('PO: ' + '${item.po || '-'}' + ' | Ref: ' + '${item.ref}' + ' | QC: ' + '${item.qc || '-'}', 'info')" title="Detail"><i class="fas fa-eye"></i></button>
+                    <button class="btn-icon" style="color: #6366f1; background: rgba(99, 102, 241, 0.1);" onclick="showDetailMasuk(${item.id_masuk})" title="Detail"><i class="fas fa-eye"></i></button>
                     <button class="btn-icon btn-delete" onclick="deleteTransaksiMasuk(${item.id_masuk})" title="Hapus Data"><i class="fas fa-trash"></i></button>
                 </td>
             `;
@@ -611,7 +611,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 <td><span class="badge" style="background-color: #fee2e2; color: #e11d48; font-weight: 600;">- ${item.qty}</span></td>
                 <td><span class="badge badge-info" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">${item.tujuan_keluar || 'Penjualan / Distribusi'}</span></td>
                 <td>
-                    <button class="btn-icon btn-edit" onclick="showToast('Ref: ' + '${item.ref}' + ' | Jenis: ' + '${item.tujuan_keluar || '-'}', 'info')" title="Detail"><i class="fas fa-eye"></i></button>
+                    <button class="btn-icon" style="color: #6366f1; background: rgba(99, 102, 241, 0.1);" onclick="showDetailKeluar(${item.id_keluar})" title="Detail"><i class="fas fa-eye"></i></button>
                     <button class="btn-icon btn-delete" onclick="deleteTransaksiKeluar(${item.id_keluar})" title="Hapus Data"><i class="fas fa-trash"></i></button>
                 </td>
             `;
@@ -2657,7 +2657,7 @@ window.renderMutasiTable = async function(searchQuery = '', dateFilter = '') {
             <td>${item.operator || '-'}</td>
             <td><span style="font-size: 13px; color: var(--text-muted);">${item.keterangan || '-'}</span></td>
             <td>
-                <button class="btn-icon" style="color: #6366f1; background: rgba(99, 102, 241, 0.1);" onclick="showToast('No. Mutasi: ${item.no_mutasi} | Ongkir: Rp ${(item.biaya_kirim || 0).toLocaleString('id-ID')} | Ket: ${item.keterangan || '-'}', 'info')" title="Detail"><i class="fas fa-eye"></i></button>
+                <button class="btn-icon" style="color: #6366f1; background: rgba(99, 102, 241, 0.1);" onclick="showDetailMutasi(${item.id_mutasi})" title="Detail"><i class="fas fa-eye"></i></button>
                 <button class="btn-icon btn-delete" onclick="deleteMutasi(${item.id_mutasi})" title="Hapus Data"><i class="fas fa-trash"></i></button>
             </td>
         `;
@@ -2894,4 +2894,77 @@ window.deleteMutasi = function(id) {
         showToast('Transaksi mutasi berhasil dihapus secara lokal! (Offline)', 'success');
         renderMutasiTable();
     });
+};
+
+// ==========================================================
+// TRANSACTION DETAIL MODALS CONTROLLERS
+// ==========================================================
+
+window.showDetailMasuk = function(id) {
+    const list = DB.get('ud_transaksi_masuk', []);
+    const item = list.find(x => x.id_masuk === id);
+    if (!item) return;
+    
+    document.getElementById('detMasukTanggal').textContent = item.tanggal || '-';
+    document.getElementById('detMasukPO').textContent = item.po || '-';
+    document.getElementById('detMasukRef').textContent = item.ref || '-';
+    document.getElementById('detMasukSupplier').textContent = item.supplier || '-';
+    document.getElementById('detMasukBarang').textContent = item.barang || '-';
+    document.getElementById('detMasukQty').textContent = `${item.qty || 0}`;
+    document.getElementById('detMasukQC').textContent = item.qc || 'Baik (Lolos QC)';
+    document.getElementById('detMasukKeterangan').textContent = item.keterangan || '-';
+    
+    const modal = document.getElementById('detailMasukModal');
+    if (modal) modal.style.display = 'flex';
+};
+
+window.closeDetailMasukModal = function() {
+    const modal = document.getElementById('detailMasukModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.showDetailKeluar = function(id) {
+    const list = DB.get('ud_transaksi_keluar', []);
+    const item = list.find(x => x.id_keluar === id);
+    if (!item) return;
+    
+    document.getElementById('detKeluarTanggal').textContent = item.tanggal || '-';
+    document.getElementById('detKeluarRef').textContent = item.ref || '-';
+    document.getElementById('detKeluarTujuan').textContent = item.tujuan || '-';
+    document.getElementById('detKeluarJenis').textContent = item.tujuan_keluar || 'Penjualan / Distribusi';
+    document.getElementById('detKeluarBarang').textContent = item.barang || '-';
+    document.getElementById('detKeluarQty').textContent = `${item.qty || 0}`;
+    document.getElementById('detKeluarKeterangan').textContent = item.keterangan || '-';
+    
+    const modal = document.getElementById('detailKeluarModal');
+    if (modal) modal.style.display = 'flex';
+};
+
+window.closeDetailKeluarModal = function() {
+    const modal = document.getElementById('detailKeluarModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.showDetailMutasi = function(id) {
+    const list = DB.get('ud_mutasi', []);
+    const item = list.find(x => x.id_mutasi === id);
+    if (!item) return;
+    
+    document.getElementById('detMutasiTanggal').textContent = item.tanggal || '-';
+    document.getElementById('detMutasiNo').textContent = item.no_mutasi || '-';
+    document.getElementById('detMutasiBarang').textContent = item.barang || '-';
+    document.getElementById('detMutasiAsal').textContent = item.gudang_asal || '-';
+    document.getElementById('detMutasiTujuan').textContent = item.gudang_tujuan || '-';
+    document.getElementById('detMutasiQty').textContent = `${item.qty || 0}`;
+    document.getElementById('detMutasiBiaya').textContent = `Rp ${(item.biaya_kirim || 0).toLocaleString('id-ID')}`;
+    document.getElementById('detMutasiOperator').textContent = item.operator || '-';
+    document.getElementById('detMutasiKeterangan').textContent = item.keterangan || '-';
+    
+    const modal = document.getElementById('detailMutasiModal');
+    if (modal) modal.style.display = 'flex';
+};
+
+window.closeDetailMutasiModal = function() {
+    const modal = document.getElementById('detailMutasiModal');
+    if (modal) modal.style.display = 'none';
 };

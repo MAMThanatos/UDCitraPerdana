@@ -8,6 +8,35 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../../assets/css/style.css">
+    <script>
+        (function() {
+            const session = localStorage.getItem('ud_session');
+            if (!session) {
+                const path = window.location.pathname;
+                const baseUrl = path.includes('/views/') ? '../..' : '.';
+                window.location.replace(baseUrl + '/views/auth/login.html');
+            } else {
+                try {
+                    const user = JSON.parse(session);
+                    const path = window.location.pathname;
+                    if (user.role === 'Staf Gudang' && path.includes('/user/manajemen_akun.html')) {
+                        const baseUrl = path.includes('/views/') ? '../..' : '.';
+                        window.location.replace(baseUrl + '/views/barang/data_barang.html');
+                    } else if (user.role === 'Staf Gudang') {
+                        const style = document.createElement('style');
+                        style.innerHTML = `
+                            .sidebar-item-dashboard,
+                            .sidebar-label-pengaturan,
+                            .sidebar-item-manajemen-akun {
+                                display: none !important;
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    }
+                } catch(e) {}
+            }
+        })();
+    </script>
 </head>
 <body>
 
@@ -19,7 +48,7 @@
                     alt="Logo" style="max-height: 30px; margin-right: 10px;">Citra Perdana</h2>
             </div>
             <ul class="sidebar-menu">
-                <li>
+                <li class="sidebar-item-dashboard">
                     <a href="../../index.html">
                         <i class="fas fa-home"></i> <span>Dashboard</span>
                     </a>
@@ -57,8 +86,8 @@
                         <i class="fas fa-clipboard-check"></i> <span>Stock Opname</span>
                     </a>
                 </li>
-                <li class="menu-label">Pengaturan</li>
-                <li>
+                <li class="menu-label sidebar-label-pengaturan">Pengaturan</li>
+                <li class="sidebar-item-manajemen-akun">
                     <a href="../user/manajemen_akun.html">
                         <i class="fas fa-users-cog"></i> <span>Manajemen Akun</span>
                     </a>
