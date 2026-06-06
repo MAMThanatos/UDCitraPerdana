@@ -47,6 +47,7 @@ CREATE TABLE `user` (
   `password` varchar(255) NOT NULL,
   `nama_lengkap` varchar(100) NOT NULL,
   `role` varchar(50) NOT NULL,
+  `session_id` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id_user`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -112,6 +113,7 @@ CREATE TABLE `barang` (
   `dimensi` varchar(50) DEFAULT NULL,
   `lokasi_rak` varchar(50) DEFAULT NULL,
   `stok_minimum` int(11) NOT NULL DEFAULT 10,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id_barang`),
   KEY `id_kategori` (`id_kategori`),
   CONSTRAINT `barang_ibfk_1` FOREIGN KEY (`id_kategori`) REFERENCES `kategori` (`id_kategori`) ON DELETE RESTRICT
