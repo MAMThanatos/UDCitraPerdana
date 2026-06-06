@@ -150,10 +150,11 @@
                         <thead>
                             <tr>
                                 <th>Tanggal</th>
-                                <th>Keterangan</th>
+                                <th>Barang Di-opname</th>
                                 <th>Petugas</th>
                                 <th style="text-align: center;">Jumlah Item</th>
                                 <th style="text-align: center;">Total Selisih Qty</th>
+                                <th>Keterangan</th>
                                 <th style="text-align: center;">Aksi</th>
                             </tr>
                         </thead>
@@ -208,6 +209,7 @@
                         <table class="data-table" style="box-shadow: none;">
                             <thead>
                                 <tr>
+                                    <th style="text-align: center; width: 60px;">Pilih</th>
                                     <th>Barang</th>
                                     <th>Lokasi Rak</th>
                                     <th style="text-align: center; width: 100px;">Stok Sistem</th>
@@ -230,47 +232,6 @@
         </div>
     </div>
 
-    <!-- Modal Detail Stock Opname -->
-    <div id="detailOpnameModal" class="modal">
-        <div class="modal-content" style="max-width: 850px;">
-            <div class="modal-header">
-                <h3>Detail Hasil Stock Opname</h3>
-                <span class="close-btn" onclick="closeDetailOpnameModal()">&times;</span>
-            </div>
-            <div class="modal-body" id="detailOpnameContent">
-                <!-- Rincian header diisi JS -->
-                <div class="form-grid" style="margin-bottom: 20px; font-size: 14px;">
-                    <div><strong>Tanggal:</strong> <span id="detTgl">-</span></div>
-                    <div><strong>Petugas:</strong> <span id="detPetugas">-</span></div>
-                    <div style="grid-column: span 2;"><strong>Keterangan:</strong> <span id="detKeterangan">-</span></div>
-                </div>
-
-                <div style="max-height: 350px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); background-color: var(--surface);">
-                    <table class="data-table" style="box-shadow: none; margin: 0;">
-                        <thead>
-                            <tr>
-                                <th>Kode</th>
-                                <th>Nama Barang</th>
-                                <th>Lokasi Rak</th>
-                                <th style="text-align: center;">Sistem</th>
-                                <th style="text-align: center;">Fisik</th>
-                                <th style="text-align: center;">Selisih</th>
-                                <th>Keterangan</th>
-                            </tr>
-                        </thead>
-                        <tbody id="detailOpnameTableBody">
-                            <!-- Detail diisi JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeDetailOpnameModal()">Tutup</button>
-                <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print" style="margin-right: 5px;"></i> Cetak</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="../../assets/js/script.js?v=2"></script>
+    <script src="../../assets/js/script.js?v=3"></script>
 </body>
 </html>

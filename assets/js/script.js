@@ -2259,6 +2259,7 @@ window.resetLocalStorageCache = function() {
 // CYCLE COUNT / STOCK OPNAME CONTROLLER
 // ==========================================================
 window.currentOpnameValues = {};
+window.currentEditingOpnameId = null;
 
 window.renderOpnameTable = async function(searchQuery = '') {
     const tableBody = document.getElementById('opnameTableBody');
@@ -2287,15 +2288,31 @@ window.renderOpnameTable = async function(searchQuery = '') {
     });
 
     if (filtered.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">Data Stock Opname tidak ditemukan</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Data Stock Opname tidak ditemukan</td></tr>';
         return;
     }
 
     filtered.forEach(item => {
         const row = document.createElement('tr');
+
+        // Build barang preview chips
+        const preview = item.barang_preview || [];
+        let barangHtml = '';
+        if (preview.length === 0) {
+            barangHtml = '<span style="color: var(--text-muted); font-size: 12px;">-</span>';
+        } else {
+            barangHtml = preview.map(nama =>
+                `<span style="display: inline-block; background: rgba(99,102,241,0.1); color: #6366f1; border-radius: 4px; padding: 2px 7px; font-size: 11px; font-weight: 500; margin: 2px 2px 2px 0;">${nama}</span>`
+            ).join('');
+            const sisa = item.total_item - preview.length;
+            if (sisa > 0) {
+                barangHtml += `<span style="display: inline-block; background: rgba(100,116,139,0.1); color: #64748b; border-radius: 4px; padding: 2px 7px; font-size: 11px; margin: 2px 0;">+${sisa} lainnya</span>`;
+            }
+        }
+
         row.innerHTML = `
             <td>${item.tgl_opname}</td>
-            <td style="font-weight: 500;">${item.keterangan || '-'}</td>
+            <td style="max-width: 260px;">${barangHtml}</td>
             <td>${item.nama_user}</td>
             <td style="text-align: center;">${item.total_item}</td>
             <td style="text-align: center;">
@@ -2303,10 +2320,16 @@ window.renderOpnameTable = async function(searchQuery = '') {
                     ${item.total_selisih_qty} Item Berselisih
                 </span>
             </td>
+            <td style="color: var(--text-muted); font-size: 13px;">${item.keterangan || '-'}</td>
             <td style="text-align: center;">
-                <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="showOpnameDetail(${item.id_opname})">
-                    <i class="fas fa-eye" style="margin-right: 4px;"></i> Detail
-                </button>
+                <div style="display: flex; justify-content: center; gap: 8px;">
+                    <button class="btn-icon btn-edit" onclick="editOpname(${item.id_opname})" title="Edit Opname">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="btn-icon btn-delete" onclick="deleteOpname(${item.id_opname})" title="Hapus Opname">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </td>
         `;
         tableBody.appendChild(row);
@@ -2318,6 +2341,11 @@ window.openOpnameModal = async function() {
     if (!modal) return;
 
     modal.style.display = 'flex';
+    
+    const titleEl = document.querySelector('#opnameModal h3');
+    if (titleEl) titleEl.innerText = 'Mulai Stock Opname Baru';
+    
+    window.currentEditingOpnameId = null;
     document.getElementById('tglOpname').value = new Date().toISOString().split('T')[0];
     document.getElementById('keteranganOpname').value = '';
     document.getElementById('filterKategoriOpname').value = '';
@@ -2348,7 +2376,8 @@ window.openOpnameModal = async function() {
             kategori: item.kategori,
             stok_sistem: parseInt(item.stok) || 0,
             stok_fisik: parseInt(item.stok) || 0,
-            keterangan: ''
+            keterangan: '',
+            checked: false
         };
     });
 
@@ -2371,7 +2400,7 @@ window.renderOpnameFormItems = function(categoryFilter = '') {
     });
 
     if (items.length === 0) {
-        formTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 15px;">Tidak ada barang dalam kategori ini</td></tr>';
+        formTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 15px;">Tidak ada barang dalam kategori ini</td></tr>';
         return;
     }
 
@@ -2389,6 +2418,9 @@ window.renderOpnameFormItems = function(categoryFilter = '') {
         }
 
         row.innerHTML = `
+            <td style="text-align: center;">
+                <input type="checkbox" class="audit-checkbox" data-id="${item.id_barang}" ${item.checked ? 'checked' : ''}>
+            </td>
             <td>
                 <div style="font-weight: 600; font-size: 13px;">${item.nama_barang}</div>
                 <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">${item.kode_barang}</div>
@@ -2407,9 +2439,14 @@ window.renderOpnameFormItems = function(categoryFilter = '') {
         formTableBody.appendChild(row);
 
         // Bind events
+        const chk = row.querySelector('.audit-checkbox');
         const fisikInp = row.querySelector('.fisik-input');
         const ketInp = row.querySelector('.ket-input');
         const diffSpan = row.querySelector('.diff-span');
+
+        chk.onchange = function() {
+            window.currentOpnameValues[item.id_barang].checked = this.checked;
+        };
 
         fisikInp.oninput = function() {
             const val = parseInt(this.value);
@@ -2417,6 +2454,8 @@ window.renderOpnameFormItems = function(categoryFilter = '') {
             
             // update in-memory state
             window.currentOpnameValues[item.id_barang].stok_fisik = cleanVal;
+            window.currentOpnameValues[item.id_barang].checked = true;
+            if (chk) chk.checked = true;
             
             // update UI difference
             const newDiff = cleanVal - item.stok_sistem;
@@ -2434,6 +2473,8 @@ window.renderOpnameFormItems = function(categoryFilter = '') {
 
         ketInp.oninput = function() {
             window.currentOpnameValues[item.id_barang].keterangan = this.value;
+            window.currentOpnameValues[item.id_barang].checked = true;
+            if (chk) chk.checked = true;
         };
     });
 };
@@ -2447,7 +2488,13 @@ window.saveOpname = function() {
         return;
     }
 
-    const itemsToSave = Object.values(window.currentOpnameValues);
+    // Hanya simpan barang yang terpilih (checked)
+    const itemsToSave = Object.values(window.currentOpnameValues).filter(i => i.checked);
+
+    if (itemsToSave.length === 0) {
+        showToast('Pilih minimal 1 barang untuk di-opname (centang kolom Pilih)!', 'error');
+        return;
+    }
 
     const btn = document.querySelector('#opnameModal .modal-footer .btn-primary');
     const originalText = btn.innerHTML;
@@ -2456,6 +2503,9 @@ window.saveOpname = function() {
 
     // Siapkan POST FormData
     const formData = new FormData();
+    if (window.currentEditingOpnameId) {
+        formData.append('id_opname', window.currentEditingOpnameId);
+    }
     formData.append('tgl_opname', tgl);
     formData.append('keterangan', ket);
     formData.append('items', JSON.stringify(itemsToSave));
@@ -2476,6 +2526,7 @@ window.saveOpname = function() {
         }
         btn.innerHTML = originalText;
         btn.disabled = false;
+        window.currentEditingOpnameId = null;
     })
     .catch(error => {
         console.warn("Gagal mengirim data opname ke server, menggunakan fallback offline:", error);
@@ -2483,59 +2534,87 @@ window.saveOpname = function() {
         // --- FALLBACK OFFLINE LOCALSTORAGE ---
         const opnameList = DB.get('ud_opname', []);
         const barangList = DB.get('ud_barang', []);
-
-        const nextId = opnameList.length > 0 ? Math.max(...opnameList.map(o => o.id_opname)) + 1 : 1;
         const totalItemsWithDiff = itemsToSave.filter(i => i.stok_fisik !== i.stok_sistem).length;
 
-        // update local stock for each adjusted item
-        itemsToSave.forEach(item => {
-            const target = barangList.find(b => b.id_barang === item.id_barang);
-            if (target) {
-                target.stok = item.stok_fisik;
+        if (window.currentEditingOpnameId) {
+            // Edit mode offline
+            const index = opnameList.findIndex(o => o.id_opname === window.currentEditingOpnameId);
+            if (index !== -1) {
+                const oldDetails = opnameList[index].details || [];
+                
+                // 1. Revert stocks for all items in the old details to their stok_sistem
+                oldDetails.forEach(oldItem => {
+                    const target = barangList.find(b => Number(b.id_barang) === Number(oldItem.id_barang));
+                    if (target) {
+                        target.stok = oldItem.stok_sistem;
+                    }
+                });
+
+                // 2. Set stocks to new physical count for currently checked items
+                itemsToSave.forEach(item => {
+                    const target = barangList.find(b => Number(b.id_barang) === Number(item.id_barang));
+                    if (target) {
+                        target.stok = item.stok_fisik;
+                    }
+                });
+
+                opnameList[index].tgl_opname = tgl;
+                opnameList[index].keterangan = ket;
+                opnameList[index].total_item = itemsToSave.length;
+                opnameList[index].total_selisih_qty = totalItemsWithDiff;
+                opnameList[index].details = itemsToSave;
             }
-        });
+            showToast('Stock Opname berhasil diperbarui secara lokal! (Offline)', 'success');
+        } else {
+            // Insert mode offline
+            // Update local stock for each adjusted item
+            itemsToSave.forEach(item => {
+                const target = barangList.find(b => Number(b.id_barang) === Number(item.id_barang));
+                if (target) {
+                    target.stok = item.stok_fisik;
+                }
+            });
 
-        // Simpan sesi opname local
-        const newLocalOpname = {
-            id_opname: nextId,
-            tgl_opname: tgl,
-            keterangan: ket,
-            nama_user: USER_SESSION ? USER_SESSION.nama_lengkap : 'Staf Gudang (Offline)',
-            total_item: itemsToSave.length,
-            total_selisih_qty: totalItemsWithDiff,
-            details: itemsToSave
-        };
+            const nextId = opnameList.length > 0 ? Math.max(...opnameList.map(o => o.id_opname)) + 1 : 1;
+            const newLocalOpname = {
+                id_opname: nextId,
+                tgl_opname: tgl,
+                keterangan: ket,
+                nama_user: USER_SESSION ? USER_SESSION.nama_lengkap : 'Staf Gudang (Offline)',
+                total_item: itemsToSave.length,
+                total_selisih_qty: totalItemsWithDiff,
+                details: itemsToSave
+            };
+            opnameList.unshift(newLocalOpname); // add to top
+            showToast('Stock Opname berhasil disimpan secara lokal! (Offline)', 'success');
+        }
 
-        opnameList.unshift(newLocalOpname); // add to top
         DB.set('ud_opname', opnameList);
         DB.set('ud_barang', barangList);
 
-        showToast('Stock Opname berhasil disimpan secara lokal! (Offline)', 'success');
         closeOpnameModal();
         renderOpnameTable();
+        window.currentEditingOpnameId = null;
 
         btn.innerHTML = originalText;
         btn.disabled = false;
     });
 };
 
-window.showOpnameDetail = async function(id) {
-    const modal = document.getElementById('detailOpnameModal');
+window.editOpname = async function(id) {
+    const modal = document.getElementById('opnameModal');
     if (!modal) return;
 
-    modal.style.display = 'flex';
+    // Ubah Judul modal
+    const titleEl = document.querySelector('#opnameModal h3');
+    if (titleEl) titleEl.innerText = 'Edit Hasil Stock Opname';
 
-    document.getElementById('detTgl').innerText = 'Memuat...';
-    document.getElementById('detPetugas').innerText = 'Memuat...';
-    document.getElementById('detKeterangan').innerText = 'Memuat...';
-    
-    const detailTableBody = document.getElementById('detailOpnameTableBody');
-    detailTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 15px;">Memuat detail...</td></tr>';
+    window.currentEditingOpnameId = id;
+    window.currentOpnameValues = {};
 
     let details = [];
-    let opnameHeader = null;
+    let header = null;
 
-    // Cari dari cache offline terlebih dahulu jika ada di lokal
     const opnameList = DB.get('ud_opname', []);
     const localOpname = opnameList.find(o => o.id_opname === id);
 
@@ -2545,82 +2624,116 @@ window.showOpnameDetail = async function(id) {
         if (data.status === 'success') {
             details = data.data;
             if (localOpname) {
-                opnameHeader = localOpname;
+                header = localOpname;
             } else {
-                // fallback header jika data local bersih
-                opnameHeader = {
+                header = {
                     tgl_opname: details[0] ? new Date().toISOString().split('T')[0] : '-',
-                    nama_user: 'Sistem',
-                    keterangan: 'Detail Sesi'
+                    keterangan: 'Edit Sesi'
                 };
             }
         } else {
             if (localOpname) {
-                opnameHeader = localOpname;
+                header = localOpname;
                 details = localOpname.details || [];
             }
         }
     } catch (e) {
-        console.warn("Gagal memuat detail dari server, menggunakan cache lokal:", e);
+        console.warn("Gagal terhubung ke API detail opname, menggunakan cache lokal:", e);
         if (localOpname) {
-            opnameHeader = localOpname;
+            header = localOpname;
             details = localOpname.details || [];
         }
     }
 
-    if (!opnameHeader) {
-        detailTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #ef4444; padding: 15px;">Detail opname tidak ditemukan</td></tr>';
+    if (!header && !localOpname) {
+        showToast('Data opname tidak ditemukan.', 'error');
         return;
     }
 
-    document.getElementById('detTgl').innerText = opnameHeader.tgl_opname;
-    document.getElementById('detPetugas').innerText = opnameHeader.nama_user;
-    document.getElementById('detKeterangan').innerText = opnameHeader.keterangan || '-';
+    // Isikan tanggal dan keterangan di modal
+    document.getElementById('tglOpname').value = header.tgl_opname || new Date().toISOString().split('T')[0];
+    document.getElementById('keteranganOpname').value = header.keterangan || '';
+    document.getElementById('filterKategoriOpname').value = '';
 
-    detailTableBody.innerHTML = '';
-
-    if (details.length === 0) {
-        detailTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 15px;">Tidak ada detail item tercatat</td></tr>';
-        return;
-    }
-
+    // Isi currentOpnameValues berdasarkan detail sesi opname lama, tandai checked: true
     details.forEach(item => {
-        const row = document.createElement('tr');
-        // adaptasikan key dari database vs key offline
-        const kode = item.kode_barang || item.kode_barang;
-        const nama = item.nama_barang || item.nama_barang;
-        const rak = item.lokasi_rak || item.lokasi_rak || '-';
-        const sistem = item.stok_sistem !== undefined ? item.stok_sistem : item.stok_sistem;
-        const fisik = item.stok_fisik !== undefined ? item.stok_fisik : item.stok_fisik;
-        const selisih = item.selisih !== undefined ? item.selisih : (fisik - sistem);
-        const ket = item.ket_selisih !== undefined ? item.ket_selisih : (item.keterangan || '-');
-
-        let diffText = '0';
-        let diffColor = 'inherit';
-        if (selisih > 0) {
-            diffText = `+${selisih}`;
-            diffColor = '#10b981';
-        } else if (selisih < 0) {
-            diffText = `${selisih}`;
-            diffColor = '#ef4444';
-        }
-
-        row.innerHTML = `
-            <td>${kode}</td>
-            <td style="font-weight: 500;">${nama}</td>
-            <td><span class="badge" style="background: rgba(99, 102, 241, 0.1); color: #6366f1; font-weight: 500;">${rak}</span></td>
-            <td style="text-align: center;">${sistem}</td>
-            <td style="text-align: center; font-weight: 600;">${fisik}</td>
-            <td style="text-align: center; font-weight: 600; color: ${diffColor};">${diffText}</td>
-            <td>${ket || '-'}</td>
-        `;
-        detailTableBody.appendChild(row);
+        const idBarang = item.id_barang;
+        window.currentOpnameValues[idBarang] = {
+            id_barang: idBarang,
+            kode_barang: item.kode_barang,
+            nama_barang: item.nama_barang,
+            lokasi_rak: item.lokasi_rak || '-',
+            kategori: item.kategori || '',
+            stok_sistem: parseInt(item.stok_sistem) || 0,
+            stok_fisik: parseInt(item.stok_fisik) || 0,
+            keterangan: item.ket_selisih || item.keterangan || '',
+            checked: true
+        };
     });
+
+    // Render tabel form
+    window.renderOpnameFormItems();
+    modal.style.display = 'flex';
 };
 
-window.closeDetailOpnameModal = function() {
-    const modal = document.getElementById('detailOpnameModal');
-    if (modal) modal.style.display = 'none';
+window.deleteOpname = function(id) {
+    if (!confirm("Apakah Anda yakin ingin menghapus sesi stock opname ini? Seluruh stok barang akan dikembalikan ke kondisi sebelum opname.")) {
+        return;
+    }
+
+    fetch(BASE_URL + '/api/laporan/save_opname.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+            '_method': 'DELETE',
+            'id_opname': id
+        }),
+        credentials: 'same-origin'
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showToast(data.message, 'success');
+            renderOpnameTable();
+        } else {
+            showToast(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.warn("Gagal menghapus opname di server, menggunakan fallback offline:", error);
+
+        // --- FALLBACK OFFLINE LOCALSTORAGE ---
+        const opnameList = DB.get('ud_opname', []);
+        const barangList = DB.get('ud_barang', []);
+
+        const targetIndex = opnameList.findIndex(o => o.id_opname === id);
+        if (targetIndex === -1) {
+            showToast('Sesi opname tidak ditemukan secara lokal.', 'error');
+            return;
+        }
+
+        const targetOpname = opnameList[targetIndex];
+        const details = targetOpname.details || [];
+
+        // Kembalikan/Rollback stok barang ke stok_sistem
+        details.forEach(item => {
+            const targetBrg = barangList.find(b => Number(b.id_barang) === Number(item.id_barang));
+            if (targetBrg) {
+                targetBrg.stok = item.stok_sistem;
+            }
+        });
+
+        // Hapus dari list sesi opname
+        opnameList.splice(targetIndex, 1);
+
+        DB.set('ud_opname', opnameList);
+        DB.set('ud_barang', barangList);
+
+        showToast('Sesi Stock Opname berhasil dihapus secara lokal! (Offline)', 'success');
+        renderOpnameTable();
+    });
 };
 
 // ==========================================================

@@ -21,7 +21,7 @@ try {
         }
 
         // Ambil detail barang untuk opname terpilih
-        $stmt = $conn->prepare("SELECT do.id_detail_opname, do.stok_sistem, do.stok_fisik, do.selisih, do.keterangan AS ket_selisih,
+        $stmt = $conn->prepare("SELECT do.id_detail_opname, do.id_barang, do.stok_sistem, do.stok_fisik, do.selisih, do.keterangan AS ket_selisih,
                                       b.kode_barang, b.nama_barang, b.satuan, k.nama_kategori AS kategori, b.lokasi_rak
                                FROM detailopname do
                                JOIN barang b ON do.id_barang = b.id_barang
@@ -53,16 +53,38 @@ try {
         
         $res = $conn->query($sql);
         $list = [];
+
+        // Prepare query for barang preview per opname
+        $stmt_prev = $conn->prepare("SELECT b.nama_barang FROM detailopname do
+                                     JOIN barang b ON do.id_barang = b.id_barang
+                                     WHERE do.id_opname = ?
+                                     ORDER BY b.kode_barang ASC
+                                     LIMIT 3");
+
         while ($row = $res->fetch_assoc()) {
+            $id_op = (int)$row['id_opname'];
+
+            // Fetch preview names
+            $stmt_prev->bind_param("i", $id_op);
+            $stmt_prev->execute();
+            $res_prev = $stmt_prev->get_result();
+            $preview_names = [];
+            while ($pr = $res_prev->fetch_assoc()) {
+                $preview_names[] = $pr['nama_barang'];
+            }
+            $stmt_prev->free_result();
+
             $list[] = [
-                'id_opname' => (int)$row['id_opname'],
-                'tgl_opname' => $row['tgl_opname'],
-                'keterangan' => $row['keterangan'] ?? '',
-                'nama_user' => $row['nama_user'],
-                'total_item' => (int)$row['total_item'],
-                'total_selisih_qty' => (int)($row['total_selisih_qty'] ?? 0)
+                'id_opname'        => $id_op,
+                'tgl_opname'       => $row['tgl_opname'],
+                'keterangan'       => $row['keterangan'] ?? '',
+                'nama_user'        => $row['nama_user'],
+                'total_item'       => (int)$row['total_item'],
+                'total_selisih_qty'=> (int)($row['total_selisih_qty'] ?? 0),
+                'barang_preview'   => $preview_names
             ];
         }
+        $stmt_prev->close();
         
         echo json_encode([
             'status' => 'success',
