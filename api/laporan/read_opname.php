@@ -50,45 +50,54 @@ try {
                 FROM opname o
                 JOIN user u ON o.id_user = u.id_user
                 ORDER BY o.tgl_opname DESC, o.id_opname DESC";
-        
+
         $res = $conn->query($sql);
         $list = [];
 
-        // Prepare query for barang preview per opname
-        $stmt_prev = $conn->prepare("SELECT b.nama_barang FROM detailopname do
-                                     JOIN barang b ON do.id_barang = b.id_barang
-                                     WHERE do.id_opname = ?
-                                     ORDER BY b.kode_barang ASC
-                                     LIMIT 3");
-
-        while ($row = $res->fetch_assoc()) {
-            $id_op = (int)$row['id_opname'];
-
-            // Fetch preview names
-            $stmt_prev->bind_param("i", $id_op);
-            $stmt_prev->execute();
-            $res_prev = $stmt_prev->get_result();
-            $preview_names = [];
-            while ($pr = $res_prev->fetch_assoc()) {
-                $preview_names[] = $pr['nama_barang'];
-            }
-            $stmt_prev->free_result();
-
-            $list[] = [
-                'id_opname'        => $id_op,
-                'tgl_opname'       => $row['tgl_opname'],
-                'keterangan'       => $row['keterangan'] ?? '',
-                'nama_user'        => $row['nama_user'],
-                'total_item'       => (int)$row['total_item'],
-                'total_selisih_qty'=> (int)($row['total_selisih_qty'] ?? 0),
-                'barang_preview'   => $preview_names
-            ];
+        // Buffer semua baris utama dulu sebelum menjalankan sub-query
+        // (menghindari konflik hasil MySQLi pada koneksi yang sama)
+        $all_rows = [];
+        if ($res) {
+            $all_rows = $res->fetch_all(MYSQLI_ASSOC);
+            $res->free();
         }
-        $stmt_prev->close();
-        
+
+        if (!empty($all_rows)) {
+            // Prepare sub-query untuk preview nama barang
+            $stmt_prev = $conn->prepare("SELECT b.nama_barang FROM detailopname do
+                                         JOIN barang b ON do.id_barang = b.id_barang
+                                         WHERE do.id_opname = ?
+                                         ORDER BY b.kode_barang ASC
+                                         LIMIT 3");
+
+            foreach ($all_rows as $row) {
+                $id_op = (int)$row['id_opname'];
+
+                $preview_names = [];
+                $stmt_prev->bind_param("i", $id_op);
+                $stmt_prev->execute();
+                $res_prev = $stmt_prev->get_result();
+                while ($pr = $res_prev->fetch_assoc()) {
+                    $preview_names[] = $pr['nama_barang'];
+                }
+                $res_prev->free();   // free mysqli_result, bukan stmt
+
+                $list[] = [
+                    'id_opname'        => $id_op,
+                    'tgl_opname'       => $row['tgl_opname'],
+                    'keterangan'       => $row['keterangan'] ?? '',
+                    'nama_user'        => $row['nama_user'],
+                    'total_item'       => (int)$row['total_item'],
+                    'total_selisih_qty'=> (int)($row['total_selisih_qty'] ?? 0),
+                    'barang_preview'   => $preview_names
+                ];
+            }
+            $stmt_prev->close();
+        }
+
         echo json_encode([
             'status' => 'success',
-            'data' => $list
+            'data'   => $list
         ]);
     }
 } catch (Exception $e) {

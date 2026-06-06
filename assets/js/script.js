@@ -2323,6 +2323,9 @@ window.renderOpnameTable = async function(searchQuery = '') {
             <td style="color: var(--text-muted); font-size: 13px;">${item.keterangan || '-'}</td>
             <td style="text-align: center;">
                 <div style="display: flex; justify-content: center; gap: 8px;">
+                    <button class="btn-icon" onclick="viewOpnameDetail(${item.id_opname}, '${(item.tgl_opname || '').replace(/'/g, "\\'")}'  , '${(item.keterangan || '').replace(/'/g, "\\'")}'  , '${(item.nama_user || '').replace(/'/g, "\\'")}'  )" title="Lihat Detail" style="background: rgba(99,102,241,0.1); color: #6366f1;">
+                        <i class="fas fa-eye"></i>
+                    </button>
                     <button class="btn-icon btn-edit" onclick="editOpname(${item.id_opname})" title="Edit Opname">
                         <i class="fas fa-pen"></i>
                     </button>
@@ -2334,6 +2337,79 @@ window.renderOpnameTable = async function(searchQuery = '') {
         `;
         tableBody.appendChild(row);
     });
+};
+
+window.viewOpnameDetail = async function(id, tgl, ket, petugas) {
+    const modal = document.getElementById('opnameDetailModal');
+    if (!modal) return;
+
+    // Set header
+    document.getElementById('opnameDetailTitle').innerText = `Detail Opname — ${tgl}`;
+    document.getElementById('opnameDetailSubtitle').innerText = `${ket || '-'}  •  Petugas: ${petugas}`;
+    document.getElementById('opnameDetailSummary').innerHTML = '';
+
+    // Reset table
+    const tbody = document.getElementById('opnameDetailTableBody');
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: var(--text-muted);"><i class="fas fa-circle-notch fa-spin" style="margin-right:6px;"></i>Memuat data...</td></tr>';
+    modal.style.display = 'flex';
+
+    try {
+        const res = await fetch(BASE_URL + `/api/laporan/read_opname.php?action=detail&id_opname=${id}`, { credentials: 'same-origin' });
+        const data = await res.json();
+
+        if (data.status !== 'success' || !data.data.length) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">Tidak ada item teropname.</td></tr>';
+            return;
+        }
+
+        const items = data.data;
+        const totalSelisih = items.filter(i => parseInt(i.selisih) !== 0).length;
+        const totalItem = items.length;
+
+        // Summary badges
+        const sumEl = document.getElementById('opnameDetailSummary');
+        sumEl.innerHTML = `
+            <span style="background: rgba(99,102,241,0.1); color:#6366f1; padding:5px 14px; border-radius:20px; font-size:13px; font-weight:600;">
+                <i class="fas fa-boxes" style="margin-right:5px;"></i>${totalItem} Item Teropname
+            </span>
+            <span style="background: ${totalSelisih > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)'}; color:${totalSelisih > 0 ? '#ef4444' : '#10b981'}; padding:5px 14px; border-radius:20px; font-size:13px; font-weight:600;">
+                <i class="fas fa-${totalSelisih > 0 ? 'exclamation-triangle' : 'check-circle'}" style="margin-right:5px;"></i>${totalSelisih} Item Berselisih
+            </span>
+        `;
+
+        // Render rows
+        tbody.innerHTML = '';
+        items.forEach((item, idx) => {
+            const selisih = parseInt(item.selisih) || 0;
+            let selisihText = selisih === 0 ? '0' : (selisih > 0 ? `+${selisih}` : `${selisih}`);
+            let selisihColor = selisih === 0 ? 'var(--text-muted)' : (selisih > 0 ? '#10b981' : '#ef4444');
+            const rowBg = selisih !== 0 ? 'rgba(245,158,11,0.05)' : '';
+
+            const tr = document.createElement('tr');
+            if (rowBg) tr.style.backgroundColor = rowBg;
+            tr.innerHTML = `
+                <td style="text-align:center; color:var(--text-muted); font-size:12px;">${idx + 1}</td>
+                <td>
+                    <div style="font-weight:600; font-size:13px;">${item.nama_barang}</div>
+                    <div style="font-size:11px; color:var(--text-muted); font-family:monospace;">${item.kode_barang}</div>
+                </td>
+                <td><span class="badge" style="background:rgba(99,102,241,0.1); color:#6366f1; font-weight:500;">${item.lokasi_rak || '-'}</span></td>
+                <td style="text-align:center; font-weight:600;">${item.stok_sistem}</td>
+                <td style="text-align:center; font-weight:600;">${item.stok_fisik}</td>
+                <td style="text-align:center; font-weight:700; color:${selisihColor};">${selisihText}</td>
+                <td style="font-size:13px; color:var(--text-muted);">${item.ket_selisih || '-'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:#ef4444;">Gagal memuat detail. Periksa koneksi.</td></tr>';
+    }
+};
+
+window.closeOpnameDetailModal = function() {
+    const modal = document.getElementById('opnameDetailModal');
+    if (modal) modal.style.display = 'none';
 };
 
 window.openOpnameModal = async function() {

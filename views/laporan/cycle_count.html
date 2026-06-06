@@ -168,7 +168,47 @@
         </div>
     </div>
 
+    <!-- Modal Detail Stock Opname -->
+    <div id="opnameDetailModal" class="modal">
+        <div class="modal-content" style="max-width: 860px;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="opnameDetailTitle">Detail Stock Opname</h3>
+                    <p id="opnameDetailSubtitle" style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0;"></p>
+                </div>
+                <span class="close-btn" onclick="closeOpnameDetailModal()">&times;</span>
+            </div>
+            <div class="modal-body" style="padding: 0;">
+                <!-- Summary badges -->
+                <div id="opnameDetailSummary" style="display: flex; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap;"></div>
+                <!-- Table -->
+                <div style="max-height: 420px; overflow-y: auto;">
+                    <table class="data-table" style="box-shadow: none;">
+                        <thead>
+                            <tr>
+                                <th style="width: 36px; text-align: center;">No</th>
+                                <th>Barang</th>
+                                <th>Lokasi Rak</th>
+                                <th style="text-align: center; width: 100px;">Stok Sistem</th>
+                                <th style="text-align: center; width: 100px;">Stok Fisik</th>
+                                <th style="text-align: center; width: 90px;">Selisih</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="opnameDetailTableBody">
+                            <tr><td colspan="7" style="text-align:center; padding: 20px; color: var(--text-muted);">Memuat data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeOpnameDetailModal()">Tutup</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Form Stock Opname -->
+
     <div id="opnameModal" class="modal">
         <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header">
@@ -234,6 +274,6 @@
         </div>
     </div>
 
-    <script src="../../assets/js/script.js?v=4"></script>
+    <script src="../../assets/js/script.js?v=5"></script>
 </body>
 </html>
