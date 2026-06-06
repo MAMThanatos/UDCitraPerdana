@@ -830,9 +830,15 @@ document.addEventListener('DOMContentLoaded', async function () {
                 stokMenipisList.forEach(item => {
                     const itemDiv = document.createElement('div');
                     itemDiv.className = 'product-item';
+                    const reorderQty = Number(item.stok_minimum || 10) * 2;
                     itemDiv.innerHTML = `
                         <span class="product-name">${item.nama_barang}</span>
-                        <span class="product-stock" style="color: #e11d48; font-weight: 600;">${item.stok} ${item.satuan}</span>
+                        <span class="product-stock" style="color: #e11d48; font-weight: 600; text-align: right;">
+                            Stok: ${item.stok} ${item.satuan}
+                            <span style="font-size: 11px; font-weight: normal; color: var(--text-muted); display: block; margin-top: 2px;">
+                                (Rekomendasi Pesan: +${reorderQty} ${item.satuan})
+                            </span>
+                        </span>
                     `;
                     kritisListContainer.appendChild(itemDiv);
                 });
