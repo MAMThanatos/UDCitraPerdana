@@ -1157,6 +1157,8 @@ window.saveBarang = function() {
     const dimensiBarang = (dimensiBarangEl && dimensiBarangEl.value) ? dimensiBarangEl.value.trim() : '-';
     const hargaBeliBarang = parseInt(document.getElementById('hargaBeliBarang').value || 0);
     const hargaBarang = parseInt(document.getElementById('hargaBarang').value || 0);
+    const stokMinimumEl = document.getElementById('stokMinimum');
+    const stokMinimum = (stokMinimumEl && stokMinimumEl.value !== '') ? parseInt(stokMinimumEl.value) : 10;
     
     // Auto-generate Kode SKU jika kosong
     const barangList = DB.get('ud_barang', []);
@@ -1191,6 +1193,7 @@ window.saveBarang = function() {
     formData.append('dimensi', dimensiBarang);
     formData.append('harga_beli', hargaBeliBarang);
     formData.append('harga', hargaBarang);
+    formData.append('stok_minimum', stokMinimum);
 
     fetch(BASE_URL + '/api/barang/save.php', {
         method: 'POST',
@@ -1226,6 +1229,7 @@ window.saveBarang = function() {
                 barangList[index].dimensi = dimensiBarang;
                 barangList[index].lokasi_rak = lokasiRak;
                 barangList[index].satuan = satuan;
+                barangList[index].stok_minimum = stokMinimum;
                 DB.set('ud_barang', barangList);
                 showToast('Data barang diperbarui secara lokal! (Offline)', 'success');
             }
@@ -1250,7 +1254,7 @@ window.saveBarang = function() {
                 berat: beratBarang,
                 dimensi: dimensiBarang,
                 lokasi_rak: lokasiRak,
-                stok_minimum: stokBarang <= 100 ? 30 : 50,
+                stok_minimum: stokMinimum,
                 created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
             });
             DB.set('ud_barang', barangList);
@@ -1743,6 +1747,8 @@ window.openModal = function(action, id = null) {
                 if (beratEl) beratEl.value = item.berat || '';
                 const dimensiEl = document.getElementById('dimensiBarang');
                 if (dimensiEl) dimensiEl.value = item.dimensi || '';
+                const stokMinEl = document.getElementById('stokMinimum');
+                if (stokMinEl) stokMinEl.value = item.stok_minimum !== undefined && item.stok_minimum !== null ? item.stok_minimum : '';
                 document.getElementById('hargaBeliBarang').value = item.harga_beli || 0;
                 document.getElementById('hargaBarang').value = item.harga;
                 form.setAttribute('data-edit-id', id);
