@@ -951,12 +951,19 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Bindings untuk halaman
     if (document.getElementById('barangTableBody')) {
-        renderBarangTable();
         const searchInput = document.querySelector('.search-box input');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                renderBarangTable(this.value);
-            });
+        const kategoriFilter = document.getElementById('kategoriFilter');
+        const trigger = () => {
+            renderBarangTable(
+                searchInput ? searchInput.value : '',
+                kategoriFilter ? kategoriFilter.value : ''
+            );
+        };
+        renderBarangTable();
+        if (searchInput) searchInput.addEventListener('input', trigger);
+        if (kategoriFilter) {
+            kategoriFilter.addEventListener('change', trigger);
+            kategoriFilter.addEventListener('input', trigger);
         }
     }
 
@@ -1096,7 +1103,12 @@ document.addEventListener('DOMContentLoaded', async function () {
         await syncDatabase();
         // Re-render UI dengan data terbaru dari server
         if (document.getElementById('barangTableBody')) {
-            renderBarangTable();
+            const searchInput = document.querySelector('.search-box input');
+            const kategoriFilter = document.getElementById('kategoriFilter');
+            renderBarangTable(
+                searchInput ? searchInput.value : '',
+                kategoriFilter ? kategoriFilter.value : ''
+            );
         }
         if (document.getElementById('barangMasukTableBody')) {
             renderBarangMasukTable();
