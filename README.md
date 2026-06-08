@@ -20,11 +20,14 @@ Aplikasi ini mengusung model otorisasi **Multi-Role (2-User Model)** yang ketat 
 * **Form Simetris 2-Kolom Premium:** Input data barang disederhanakan menjadi 8 field praktis yang disesuaikan dengan toko bangunan (menghilangkan dimensi/berat teoretis yang rumit menjadi otomatis).
 * **Auto-Generated SKU/Kode Barang:** Sistem secara otomatis menyusun kode barang (`BRG-00X`) secara cerdas jika kolom SKU dikosongkan oleh pengguna.
 * **Dynamic Relational Kategori:** Ketika barang baru disimpan dengan nama kategori baru, sistem backend secara otomatis mendaftarkan kategori tersebut ke tabel relasi database `kategori` tanpa memerlukan input manual di halaman terpisah.
+* **Pencarian & Filter Kategori Real-Time:** Menambahkan dropdown filter kategori di sebelah kolom pencarian teks untuk mempermudah penyaringan data barang secara dinamis secara real-time.
 
-### 3. 🔄 Transaksi Logistik Cerdas (Barang Masuk & Keluar)
+### 3. 🔄 Transaksi Logistik Cerdas (Barang Masuk, Keluar, & Opname)
 * **Double-Layer Stock Validation:** Keamanan berlapis yang mencegah pencatatan transaksi Barang Keluar jika stok yang tersedia di gudang tidak mencukupi.
 * **Dynamic Autocomplete Supplier:** Form input nama Supplier dilengkapi rekomendasi otomatis (*Auto-Suggest Dropdown*) dari database. Jika Anda menuliskan nama baru, sistem otomatis menambahkannya ke tabel `supplier` di phpMyAdmin.
 * **Database Relasional Utuh:** Seluruh transaksi tercatat secara relasional terpisah ke tabel detail transaksi (`detailmasuk`, `detailkeluar`) dengan dukungan integritas data referensial (*ON DELETE CASCADE*).
+* **Stock Opname (Cycle Count) & Rollback Otomatis:** Mendukung audit fisik barang untuk mencatat selisih stok (kurang/lebih). Dilengkapi fitur edit dan hapus sesi opname yang secara otomatis melakukan *rollback* jumlah stok barang ke keadaan semula sebelum audit.
+* **Kalkulasi Akurat Laporan Stok:** Laporan rekapitulasi mutasi stok menghitung mundur stok awal dan akhir secara tepat dengan memperhitungkan barang masuk, keluar, mutasi gudang, dan selisih opname.
 
 ### 4. 🖨️ Fitur Interaktif & Ekspor Laporan
 * **QR Code Sticker Generator:** Membuat kode QR unik secara real-time untuk setiap barang menggunakan API eksternal yang siap dicetak sebagai stiker fisik.
@@ -45,6 +48,7 @@ Aplikasi ini mengusung model otorisasi **Multi-Role (2-User Model)** yang ketat 
 ---
 
 ## 📂 Struktur Direktori Projek
+
 ```text
 UdCitraPerdana/
 │
@@ -57,11 +61,15 @@ UdCitraPerdana/
 │   │   ├── read.php
 │   │   ├── save.php
 │   │   └── delete.php
-│   ├── transaksi/                   # Transaksi Logistik
+│   ├── transaksi/                   # Transaksi Logistik & Mutasi
 │   │   ├── masuk.php
-│   │   └── keluar.php
-│   └── laporan/                     # Rolling stock bulanan
-│       └── read_stok.php
+│   │   ├── keluar.php
+│   │   ├── read_mutasi.php
+│   │   └── save_mutasi.php
+│   └── laporan/                     # Laporan & Stock Opname
+│       ├── read_stok.php
+│       ├── read_opname.php
+│       └── save_opname.php
 │
 ├── assets/                          # Static Assets
 │   ├── css/
@@ -71,8 +79,7 @@ UdCitraPerdana/
 │   └── images/                      # Logo & Ilustrasi
 │
 ├── config/                          # Koneksi Database
-│   ├── db.php
-│   └── koneksi.php
+│   └── db.php                       # Database Connection
 │
 ├── database/                        # Database Script
 │   └── ud_citra_perdana.sql         # Struktur skema & data awal
@@ -81,12 +88,14 @@ UdCitraPerdana/
 │   ├── auth/
 │   │   └── login.html
 │   ├── barang/
-│   │   └── data_barang.html
+│   │   └── data_barang.html         # Data barang dengan filter kategori
 │   ├── transaksi/
 │   │   ├── barang_masuk.html
-│   │   └── barang_keluar.html
+│   │   ├── barang_keluar.html
+│   │   └── mutasi_gudang.html       # Transaksi Mutasi Gudang
 │   ├── laporan/
-│   │   └── laporan_stok.html
+│   │   ├── laporan_stok.html        # Laporan rekap & nilai aset akurat
+│   │   └── cycle_count.html         # Kelola & Audit Stock Opname
 │   └── user/
 │       └── manajemen_akun.html
 │
