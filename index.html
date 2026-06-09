@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="assets/css/style.css">
     <script>
         (function() {
+            document.documentElement.style.visibility = 'hidden';
             const session = localStorage.getItem('ud_session');
             if (!session) {
                 window.location.replace('views/auth/login.html');
@@ -18,8 +19,12 @@
                     const user = JSON.parse(session);
                     if (user.role === 'Staf Gudang') {
                         window.location.replace('views/barang/data_barang.html');
+                    } else {
+                        document.documentElement.style.visibility = '';
                     }
-                } catch(e) {}
+                } catch(e) {
+                    document.documentElement.style.visibility = '';
+                }
             }
         })();
     </script>
