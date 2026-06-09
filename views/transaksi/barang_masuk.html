@@ -267,49 +267,48 @@
         </div>
     </div>
 
-    <!-- Modal Simulator Scan QR -->
+    <!-- Modal Scan QR Kamera Nyata -->
     <div id="scannerModal" class="modal" style="z-index: 3000;">
-        <div class="modal-content" style="max-width: 450px; text-align: center; overflow: hidden; position: relative;">
+        <div class="modal-content" style="max-width: 460px; text-align: center; overflow: hidden; position: relative;">
             <div class="modal-header">
-                <h3><i class="fas fa-camera" style="margin-right: 8px;"></i> Simulator Pemindai QR</h3>
+                <h3><i class="fas fa-camera" style="margin-right: 8px;"></i> Pindai QR Code Barang</h3>
                 <span class="close-btn" onclick="closeScannerSim()">&times;</span>
             </div>
-            <div class="modal-body" style="padding: 20px 10px;">
-                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">
-                    Simulasi memindai QR Code stiker fisik barang menggunakan kamera smartphone Staf Gudang.
+            <div class="modal-body" style="padding: 16px 12px;">
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+                    Arahkan kamera ke QR Code stiker barang. Pastikan izin kamera diaktifkan di browser.
                 </p>
-                
-                <!-- Viewfinder Pemindai -->
-                <div style="width: 100%; height: 200px; background: #000; border-radius: var(--radius-lg); position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 20px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8);">
-                    
 
-                    
-                    <!-- Target Area Scan -->
-                    <div style="width: 140px; height: 140px; border: 2px dashed #10b981; position: absolute; border-radius: var(--radius-md); box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); z-index: 1;"></div>
-                    
-                    <!-- Simulated Camera Noise / Overlay -->
-                    <div style="position: absolute; width: 100%; height: 100%; background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.4) 100%); z-index: 1;"></div>
-                    
-                    <!-- Sim Camera Icon / Text -->
-                    <div id="scannerIcon" style="z-index: 0; color: rgba(255,255,255,0.15); display: flex; flex-direction: column; align-items: center;">
-                        <i class="fas fa-qrcode fa-4x" style="margin-bottom: 10px; animation: pulse 1.5s infinite;"></i>
-                        <span style="font-size: 11px; font-weight: 500; letter-spacing: 1px; color: rgba(255,255,255,0.4);">MENCARI QR CODE...</span>
+                <!-- Viewport Kamera -->
+                <div id="qr-reader" style="width: 100%; border-radius: var(--radius-lg); overflow: hidden; border: 2px solid var(--border-color); margin-bottom: 14px; min-height: 220px; background: #000; display: flex; align-items: center; justify-content: center;">
+                    <div id="qr-reader-placeholder" style="color: rgba(255,255,255,0.4); font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
+                        <i class="fas fa-camera fa-3x" style="opacity: 0.3;"></i>
+                        <span>Kamera akan aktif...</span>
                     </div>
                 </div>
 
-                <!-- Daftar QR Code Cepat untuk Dipindai -->
+                <!-- Status Pesan -->
+                <div id="qr-reader-status" style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px; min-height: 20px;"></div>
+
+                <!-- Divider -->
+                <div style="border-top: 1px solid var(--border-color); margin: 12px 0; text-align: center;">
+                    <span style="background: var(--surface); padding: 0 10px; font-size: 12px; color: var(--text-muted); position: relative; top: -10px;">atau pilih manual</span>
+                </div>
+
+                <!-- Daftar Barang Manual (Fallback) -->
                 <div style="text-align: left; background: var(--surface); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-                    <h5 style="margin-bottom: 8px; color: var(--text-main); font-size: 13px;"><i class="fas fa-list" style="margin-right: 5px;"></i> Klik untuk Simulasikan Pemindaian Barang:</h5>
-                    <div id="scannerBarangList" style="display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto; padding-right: 5px;">
+                    <h5 style="margin-bottom: 8px; color: var(--text-main); font-size: 13px;"><i class="fas fa-list" style="margin-right: 5px;"></i> Pilih Barang Manual:</h5>
+                    <div id="scannerBarangList" style="display: flex; flex-direction: column; gap: 8px; max-height: 130px; overflow-y: auto; padding-right: 5px;">
                         <!-- Daftar barang dinamis dari JS -->
                     </div>
                 </div>
             </div>
             <div class="modal-footer" style="justify-content: center;">
-                <button class="btn btn-secondary" onclick="closeScannerSim()">Batal</button>
+                <button class="btn btn-secondary" onclick="closeScannerSim()">Tutup</button>
             </div>
         </div>
     </div>
+
 
     <!-- Modal Detail Transaksi Masuk -->
     <div id="detailMasukModal" class="modal">
@@ -352,5 +351,163 @@
     </div>
 
     <script src="../../assets/js/script.js?v=2"></script>
+
+    <!-- Library QR Scanner Kamera Nyata -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script>
+    // ================================================================
+    // QR CAMERA SCANNER - Kamera Nyata (mengganti fungsi simulator)
+    // ================================================================
+    let html5QrCodeScanner = null;
+
+    // Override fungsi openScannerSim dari script.js dengan versi kamera nyata
+    window.openScannerSim = function() {
+        const modal = document.getElementById('scannerModal');
+        const container = document.getElementById('scannerBarangList');
+
+        if (!modal) return;
+        modal.style.display = 'flex';
+
+        // Isi daftar barang manual (fallback)
+        if (container) {
+            const barangList = DB.get('ud_barang', []);
+            container.innerHTML = '';
+            if (barangList.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-muted); font-size: 13px;">Belum ada data barang.</div>';
+            } else {
+                barangList.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'activity-item';
+                    itemDiv.style.cssText = 'cursor:pointer;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:8px 10px;transition:all 0.2s;';
+                    itemDiv.innerHTML = `
+                        <div style="display:flex;align-items:center;width:100%;justify-content:space-between;">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <i class="fas fa-qrcode" style="color:#6366f1;font-size:16px;"></i>
+                                <div>
+                                    <div style="font-weight:600;font-size:13px;color:var(--text-main);">${item.kode_barang}</div>
+                                    <div style="font-size:11px;color:var(--text-muted);">${item.nama_barang}</div>
+                                </div>
+                            </div>
+                            <span class="badge badge-info" style="font-size:10px;padding:2px 6px;">Pilih</span>
+                        </div>`;
+                    itemDiv.onmouseover = () => { itemDiv.style.backgroundColor = 'rgba(99,102,241,0.05)'; itemDiv.style.borderColor = '#6366f1'; };
+                    itemDiv.onmouseout = () => { itemDiv.style.backgroundColor = ''; itemDiv.style.borderColor = 'var(--border-color)'; };
+                    itemDiv.onclick = () => { triggerScanSuccess(item.nama_barang, item.kode_barang); };
+                    container.appendChild(itemDiv);
+                });
+            }
+        }
+
+        // Mulai kamera QR scanner
+        startQrCamera();
+    };
+
+    function startQrCamera() {
+        const statusEl = document.getElementById('qr-reader-status');
+        const readerEl = document.getElementById('qr-reader');
+        const placeholder = document.getElementById('qr-reader-placeholder');
+
+        if (statusEl) statusEl.textContent = '⏳ Memulai kamera...';
+
+        // Stop scanner lama jika masih berjalan
+        if (html5QrCodeScanner) {
+            html5QrCodeScanner.stop().catch(() => {}).finally(() => {
+                html5QrCodeScanner = null;
+                initScanner();
+            });
+        } else {
+            initScanner();
+        }
+
+        function initScanner() {
+            if (placeholder) placeholder.style.display = 'none';
+
+            html5QrCodeScanner = new Html5Qrcode('qr-reader');
+
+            const config = {
+                fps: 10,
+                qrbox: { width: 200, height: 200 },
+                aspectRatio: 1.0,
+                // Prioritaskan kamera belakang di HP
+                videoConstraints: {
+                    facingMode: { ideal: 'environment' }
+                }
+            };
+
+            html5QrCodeScanner.start(
+                { facingMode: { ideal: 'environment' } },
+                config,
+                // Callback sukses scan
+                function(decodedText) {
+                    if (statusEl) {
+                        statusEl.innerHTML = `<span style="color:#10b981;font-weight:600;">✅ QR Terbaca: ${decodedText}</span>`;
+                    }
+
+                    // Parsing QR: format "Kode: XXX\nNama: YYY\n..."
+                    let kode = decodedText;
+                    let nama = '';
+
+                    if (decodedText.includes('Kode:')) {
+                        const lines = decodedText.split('\n');
+                        lines.forEach(line => {
+                            if (line.startsWith('Kode:')) kode = line.replace('Kode:', '').trim();
+                            if (line.startsWith('Nama:')) nama = line.replace('Nama:', '').trim();
+                        });
+                    }
+
+                    // Stop kamera setelah berhasil scan
+                    if (html5QrCodeScanner) {
+                        html5QrCodeScanner.stop().catch(() => {});
+                        html5QrCodeScanner = null;
+                    }
+
+                    // Trigger pemilihan barang
+                    setTimeout(() => {
+                        triggerScanSuccess(nama || kode, kode);
+                    }, 300);
+                },
+                // Callback error (diabaikan, terus scan)
+                function(errorMsg) {
+                    // Tidak perlu tampilkan error setiap frame
+                }
+            ).then(() => {
+                if (statusEl) statusEl.innerHTML = '<span style="color:#6366f1;">📷 Kamera aktif — arahkan ke QR Code</span>';
+            }).catch(err => {
+                console.warn('Kamera gagal:', err);
+                if (statusEl) {
+                    statusEl.innerHTML = `<span style="color:#ef4444;">⚠️ Kamera tidak dapat diakses. Gunakan pilihan manual di bawah.</span>`;
+                }
+                if (placeholder) {
+                    placeholder.style.display = 'flex';
+                    placeholder.innerHTML = '<i class="fas fa-exclamation-triangle fa-2x" style="color:#ef4444;opacity:0.6;"></i><span style="color:rgba(255,100,100,0.7);font-size:12px;">Kamera tidak tersedia</span>';
+                }
+            });
+        }
+    }
+
+    // Override closeScannerSim untuk menghentikan kamera
+    window.closeScannerSim = function() {
+        const modal = document.getElementById('scannerModal');
+        if (modal) modal.style.display = 'none';
+
+        // Hentikan kamera
+        if (html5QrCodeScanner) {
+            html5QrCodeScanner.stop().catch(() => {});
+            html5QrCodeScanner = null;
+        }
+
+        // Reset status
+        const statusEl = document.getElementById('qr-reader-status');
+        if (statusEl) statusEl.textContent = '';
+
+        // Reset placeholder
+        const placeholder = document.getElementById('qr-reader-placeholder');
+        if (placeholder) {
+            placeholder.style.display = 'flex';
+            placeholder.innerHTML = '<i class="fas fa-camera fa-3x" style="opacity:0.3;"></i><span>Kamera akan aktif...</span>';
+        }
+    };
+    </script>
 </body>
 </html>
+
