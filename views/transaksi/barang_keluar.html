@@ -390,39 +390,85 @@
 
     function startQrCamera() {
         const statusEl = document.getElementById('qr-reader-status');
+        const readerEl = document.getElementById('qr-reader');
         const placeholder = document.getElementById('qr-reader-placeholder');
+
         if (statusEl) statusEl.textContent = '⏳ Memulai kamera...';
 
-        const run = () => {
+        // Stop scanner lama jika masih berjalan
+        if (html5QrCodeScanner) {
+            html5QrCodeScanner.stop().catch(() => {}).finally(() => {
+                html5QrCodeScanner = null;
+                initScanner();
+            });
+        } else {
+            initScanner();
+        }
+
+        function initScanner() {
             if (placeholder) placeholder.style.display = 'none';
+
             html5QrCodeScanner = new Html5Qrcode('qr-reader');
+
+            const config = {
+                fps: 10,
+                qrbox: { width: 200, height: 200 },
+                aspectRatio: 1.0,
+                // Prioritaskan kamera belakang di HP
+                videoConstraints: {
+                    facingMode: { ideal: 'environment' }
+                }
+            };
+
             html5QrCodeScanner.start(
                 { facingMode: { ideal: 'environment' } },
-                { fps: 10, qrbox: { width: 200, height: 200 }, aspectRatio: 1.0 },
+                config,
+                // Callback sukses scan
                 function(decodedText) {
-                    if (statusEl) statusEl.innerHTML = `<span style="color:#10b981;font-weight:600;">✅ QR Terbaca: ${decodedText}</span>`;
-                    let kode = decodedText, nama = '';
+                    if (statusEl) {
+                        statusEl.innerHTML = `<span style="color:#10b981;font-weight:600;">✅ QR Terbaca: ${decodedText}</span>`;
+                    }
+
+                    // Parsing QR: format "Kode: XXX\nNama: YYY\n..."
+                    let kode = decodedText;
+                    let nama = '';
+
                     if (decodedText.includes('Kode:')) {
-                        decodedText.split('\n').forEach(line => {
+                        const lines = decodedText.split('\n');
+                        lines.forEach(line => {
                             if (line.startsWith('Kode:')) kode = line.replace('Kode:', '').trim();
                             if (line.startsWith('Nama:')) nama = line.replace('Nama:', '').trim();
                         });
                     }
-                    if (html5QrCodeScanner) { html5QrCodeScanner.stop().catch(() => {}); html5QrCodeScanner = null; }
-                    setTimeout(() => { triggerScanSuccess(nama || kode, kode); }, 300);
+
+                    // Stop kamera setelah berhasil scan
+                    if (html5QrCodeScanner) {
+                        html5QrCodeScanner.stop().catch(() => {});
+                        html5QrCodeScanner = null;
+                    }
+
+                    // Trigger pemilihan barang
+                    setTimeout(() => {
+                        triggerScanSuccess(nama || kode, kode);
+                    }, 300);
                 },
-                () => {}
+                // Callback error (diabaikan, terus scan)
+                function(errorMsg) {
+                    // Tidak perlu tampilkan error setiap frame
+                }
             ).then(() => {
                 if (statusEl) statusEl.innerHTML = '<span style="color:#6366f1;">📷 Kamera aktif — arahkan ke QR Code</span>';
             }).catch(err => {
-                if (statusEl) statusEl.innerHTML = '<span style="color:#ef4444;">⚠️ Kamera tidak dapat diakses. Gunakan pilihan manual.</span>';
-                if (placeholder) { placeholder.style.display = 'flex'; placeholder.innerHTML = '<i class="fas fa-exclamation-triangle fa-2x" style="color:#ef4444;opacity:0.6;"></i><span style="color:rgba(255,100,100,0.7);font-size:12px;">Kamera tidak tersedia</span>'; }
+                console.warn('Kamera gagal:', err);
+                if (statusEl) {
+                    statusEl.innerHTML = `<span style="color:#ef4444;">⚠️ Kamera tidak dapat diakses. Gunakan pilihan manual di bawah.</span>`;
+                }
+                if (placeholder) {
+                    placeholder.style.display = 'flex';
+                    placeholder.innerHTML = '<i class="fas fa-exclamation-triangle fa-2x" style="color:#ef4444;opacity:0.6;"></i><span style="color:rgba(255,100,100,0.7);font-size:12px;">Kamera tidak tersedia</span>';
+                }
             });
-        };
-
-        if (html5QrCodeScanner) {
-            html5QrCodeScanner.stop().catch(() => {}).finally(() => { html5QrCodeScanner = null; run(); });
-        } else { run(); }
+        }
     }
 
     window.closeScannerSim = function() {
