@@ -81,11 +81,14 @@ const DB = {
     // Inisialisasi Database
     init() {
         // Bersihkan data dummy lama sekali saja agar browser klien bersih
-        if (!localStorage.getItem('ud_cleaned_dummy')) {
+        if (!localStorage.getItem('ud_cleaned_dummy_v2')) {
             localStorage.removeItem('ud_barang');
             localStorage.removeItem('ud_transaksi_masuk');
             localStorage.removeItem('ud_transaksi_keluar');
-            localStorage.setItem('ud_cleaned_dummy', 'true');
+            localStorage.removeItem('ud_mutasi');
+            localStorage.removeItem('ud_users');
+            localStorage.removeItem('ud_cycle_count');
+            localStorage.setItem('ud_cleaned_dummy_v2', 'true');
         }
 
         // Melakukan migrasi database lokal jika ada skema lama (seperti role Manajer atau Admin)

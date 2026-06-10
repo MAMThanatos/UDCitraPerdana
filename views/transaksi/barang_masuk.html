@@ -127,6 +127,24 @@
                     </div>
                 </div>
             </header>
+
+            <script>
+                (function() {
+                    const session = localStorage.getItem('ud_session');
+                    if (session) {
+                        try {
+                            const user = JSON.parse(session);
+                            const btnSpan = document.querySelector('#userProfileBtn span');
+                            const nameEl = document.querySelector('.dropdown-user-name');
+                            const roleEl = document.querySelector('.dropdown-user-role');
+                            const name = user.nama_lengkap || user.nama || user.username;
+                            if (btnSpan) btnSpan.textContent = name;
+                            if (nameEl) nameEl.textContent = name;
+                            if (roleEl) roleEl.textContent = user.role;
+                        } catch(e) {}
+                    }
+                })();
+            </script>
             
             <main class="content-area">
                 <div class="page-header">
@@ -350,7 +368,7 @@
         </div>
     </div>
 
-    <script src="../../assets/js/script.js?v=2"></script>
+    <script src="../../assets/js/script.js?v=4"></script>
 
     <!-- Library QR Scanner Kamera Nyata -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
