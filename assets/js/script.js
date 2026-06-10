@@ -488,7 +488,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
         
         if (filtered.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">Data barang tidak ditemukan</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px 20px;"><div style="color: var(--border-color); margin-bottom: 15px;"><i class="fas fa-box-open fa-3x"></i></div><div style="color: var(--text-muted); font-size: 14px;">Data barang tidak ditemukan. Silakan tambah barang baru atau ubah filter pencarian.</div></td></tr>';
             return;
         }
         
@@ -544,7 +544,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
         
         if (filtered.length === 0) {
-            masukTableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">Data transaksi masuk tidak ditemukan</td></tr>';
+            masukTableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px 20px;"><div style="color: var(--border-color); margin-bottom: 15px;"><i class="fas fa-arrow-down fa-3x" style="opacity: 0.5;"></i></div><div style="color: var(--text-muted); font-size: 14px;">Data transaksi masuk tidak ditemukan.</div></td></tr>';
             return;
         }
         
@@ -597,7 +597,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
         
         if (filtered.length === 0) {
-            keluarTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Data transaksi keluar tidak ditemukan</td></tr>';
+            keluarTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px 20px;"><div style="color: var(--border-color); margin-bottom: 15px;"><i class="fas fa-arrow-up fa-3x" style="opacity: 0.5;"></i></div><div style="color: var(--text-muted); font-size: 14px;">Data transaksi keluar tidak ditemukan.</div></td></tr>';
             return;
         }
         
@@ -665,7 +665,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             });
             
             if (filtered.length === 0) {
-                laporanStokTableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 20px;">Laporan tidak ditemukan</td></tr>';
+                laporanStokTableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px 20px;"><div style="color: var(--border-color); margin-bottom: 15px;"><i class="fas fa-file-alt fa-3x"></i></div><div style="color: var(--text-muted); font-size: 14px;">Laporan stok tidak ditemukan atau kosong.</div></td></tr>';
                 return;
             }
             
@@ -725,7 +725,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             });
             
             if (filtered.length === 0) {
-                laporanStokTableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 20px;">Laporan tidak ditemukan</td></tr>';
+                laporanStokTableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px 20px;"><div style="color: var(--border-color); margin-bottom: 15px;"><i class="fas fa-file-alt fa-3x"></i></div><div style="color: var(--text-muted); font-size: 14px;">Laporan stok tidak ditemukan atau kosong.</div></td></tr>';
                 return;
             }
             
@@ -795,7 +795,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
         
         if (filtered.length === 0) {
-            manajemenAkunTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Pengguna tidak ditemukan</td></tr>';
+            manajemenAkunTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px 20px;"><div style="color: var(--border-color); margin-bottom: 15px;"><i class="fas fa-users fa-3x"></i></div><div style="color: var(--text-muted); font-size: 14px;">Data pengguna tidak ditemukan.</div></td></tr>';
             return;
         }
         
@@ -2300,7 +2300,7 @@ window.renderOpnameTable = async function(searchQuery = '') {
     });
 
     if (filtered.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Data Stock Opname tidak ditemukan</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px 20px;"><div style="color: var(--border-color); margin-bottom: 15px;"><i class="fas fa-clipboard-check fa-3x"></i></div><div style="color: var(--text-muted); font-size: 14px;">Data Stock Opname tidak ditemukan. Silakan mulai opname baru.</div></td></tr>';
         return;
     }
 
@@ -2889,7 +2889,7 @@ window.renderMutasiTable = async function(searchQuery = '', dateFilter = '') {
     });
     
     if (filtered.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 20px;">Data transaksi mutasi tidak ditemukan</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px 20px;"><div style="color: var(--border-color); margin-bottom: 15px;"><i class="fas fa-exchange-alt fa-3x" style="opacity: 0.5;"></i></div><div style="color: var(--text-muted); font-size: 14px;">Data transaksi mutasi tidak ditemukan.</div></td></tr>';
         return;
     }
     
@@ -2899,12 +2899,14 @@ window.renderMutasiTable = async function(searchQuery = '', dateFilter = '') {
             <td>${item.tanggal}</td>
             <td style="font-weight: 600; font-family: monospace; color: var(--primary);">${item.no_mutasi}</td>
             <td style="font-weight: 500;">${item.barang}</td>
-            <td><span class="badge" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">${item.gudang_asal}</span></td>
-            <td><span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">${item.gudang_tujuan}</span></td>
-            <td><strong>${item.qty}</strong></td>
-            <td>Rp ${(item.biaya_kirim || 0).toLocaleString('id-ID')}</td>
-            <td>${item.operator || '-'}</td>
-            <td><span style="font-size: 13px; color: var(--text-muted);">${item.keterangan || '-'}</span></td>
+            <td>
+                <div style="font-size:12px;color:var(--text-muted);"><i class="fas fa-sign-out-alt" style="width:14px;color:#ef4444;"></i> <span style="color:var(--text-main);">${item.gudang_asal}</span></div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:4px;"><i class="fas fa-sign-in-alt" style="width:14px;color:#10b981;"></i> <span style="color:var(--text-main);">${item.gudang_tujuan}</span></div>
+            </td>
+            <td>
+                <strong>${item.qty}</strong>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Ongkir: Rp ${(item.biaya_kirim || 0).toLocaleString('id-ID')}</div>
+            </td>
             <td>
                 <button class="btn-icon" style="color: #6366f1; background: rgba(99, 102, 241, 0.1);" onclick="showDetailMutasi(${item.id_mutasi})" title="Detail"><i class="fas fa-eye"></i></button>
                 <button class="btn-icon btn-delete" onclick="deleteMutasi(${item.id_mutasi})" title="Hapus Data"><i class="fas fa-trash"></i></button>
