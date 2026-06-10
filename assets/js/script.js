@@ -1167,6 +1167,11 @@ document.addEventListener('DOMContentLoaded', async function () {
             });
         }
     }
+    
+    // Populasikan select barang secara dinamis jika ada form input transaksi
+    if (typeof populateSelectBarangOptions === 'function') {
+        populateSelectBarangOptions();
+    }
 });
 
 // ==========================================================
@@ -3221,4 +3226,31 @@ window.showDetailMutasi = function(id) {
 window.closeDetailMutasiModal = function() {
     const modal = document.getElementById('detailMutasiModal');
     if (modal) modal.style.display = 'none';
+};
+
+window.populateSelectBarangOptions = function() {
+    const selects = [
+        document.getElementById('pilihBarang'),
+        document.getElementById('pilihBarangMutasi')
+    ];
+    
+    const barangList = DB.get('ud_barang', []);
+    if (barangList.length === 0) return;
+    
+    selects.forEach(select => {
+        if (!select) return;
+        
+        const firstOpt = select.options[0];
+        const placeholder = (firstOpt && firstOpt.value === "") ? firstOpt.outerHTML : '<option value="">-- Pilih Barang --</option>';
+        
+        let html = placeholder;
+        // Sort by kode_barang alphabetically
+        const sortedBarang = [...barangList].sort((a, b) => a.kode_barang.localeCompare(b.kode_barang));
+        
+        sortedBarang.forEach(b => {
+            html += `<option value="${b.nama_barang}">${b.kode_barang} - ${b.nama_barang} (Stok: ${b.stok})</option>`;
+        });
+        
+        select.innerHTML = html;
+    });
 };
