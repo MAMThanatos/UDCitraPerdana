@@ -2,7 +2,7 @@
 
 Sistem Aplikasi Inventaris Gudang Premium berbasis Web Relasional untuk **UD Citra Perdana** (Toko Bangunan). Aplikasi ini dikembangkan menggunakan kombinasi teknologi modern **HTML5, CSS3 Vanilla, Vanilla JavaScript, PHP, dan MariaDB/MySQL**, serta disesuaikan secara khusus untuk memenuhi studi kasus dunia nyata toko material & bahan bangunan.
 
-Aplikasi ini mengusung model otorisasi **Multi-Role (2-User Model)** yang ketat dan dilengkapi fitur canggih seperti **Automatic Relational Mapping**, **Pindai Kamera QR Simulator dengan Sintesis Suara (Web Audio API)**, **Ekspor Laporan Excel**, serta **Offline Fallback Engine** otomatis jika koneksi database XAMPP terputus.
+Aplikasi ini mengusung model otorisasi **Multi-Role (2-User Model)** yang ketat dan dilengkapi fitur canggih seperti **Automatic Relational Mapping**, **Pindai Kamera QR Secara Langsung (Native Device Camera) dengan Sintesis Suara (Web Audio API)**, **Ekspor Laporan Excel**, serta **Offline Fallback Engine** otomatis jika koneksi database XAMPP terputus.
 
 ---
 
@@ -12,7 +12,7 @@ Aplikasi ini mengusung model otorisasi **Multi-Role (2-User Model)** yang ketat 
 * **Dua Peran Pengguna (Multi-Role):**
   * **Admin / Owner:** Memiliki akses penuh ke Dashboard monitoring, Kelola Barang, Transaksi Masuk/Keluar, Laporan Stok Bulanan, dan Manajemen Akun Staf.
   * **Staf Gudang:** Akses khusus terbatas untuk mencatat transaksi Barang Masuk & Barang Keluar, serta cetak stiker QR Code. Sidebar Dashboard dan Manajemen Akun disembunyikan secara otomatis demi keamanan.
-* **Bypass Protection:** Proteksi halaman ketat menggunakan verifikasi session PHP (`PHPSESSID`). Jika dicoba akses langsung tanpa login, otomatis dialihkan ke login.
+* **Bypass Protection:** Proteksi routing frontend (JavaScript) secara ketat, menolak upaya pengguna (Staf) untuk mengakses halaman `/index.html` (Dashboard Admin) maupun pengaturan manajemen akun secara paksa via URL dengan me-redirect ke halaman yang diotorisasi.
 * **Bfcache Bypass Redirect:** Mengatasi celah tombol *Back/Forward* browser. Saat pengguna melakukan logout, menekan tombol *Back* pada browser tidak akan bisa mem-bypass halaman karena sistem akan memaksa reload dan melakukan validasi ulang.
 * **No-Cache API Headers:** Endpoint dilindungi dengan header HTTP anti-cache guna mencegah browser menyimpan data kredensial sensitif.
 
@@ -31,7 +31,7 @@ Aplikasi ini mengusung model otorisasi **Multi-Role (2-User Model)** yang ketat 
 
 ### 4. 🖨️ Fitur Interaktif & Ekspor Laporan
 * **QR Code Sticker Generator:** Membuat kode QR unik secara real-time untuk setiap barang menggunakan API eksternal yang siap dicetak sebagai stiker fisik.
-* **Camera Laser Scanner Simulator:** Simulasi pemindaian stiker QR barang menggunakan kamera yang dilengkapi dengan efek suara **Beep laser sintetis (Web Audio API)** untuk mempercepat input transaksi.
+* **Native Camera QR Scanner:** Integrasi penuh perpustakaan `html5-qrcode` untuk menggunakan kamera perangkat (HP/Webcam) sebagai mesin pemindai fisik. Dilengkapi simulasi suara **Beep laser sintetis (Web Audio API)** dan integrasi pencarian cerdas ke dalam dropdown secara dinamis (*Dynamic Select Population*) untuk mempercepat input logistik.
 * **Ekspor Laporan Excel:** Unduh Laporan Stok Bulanan secara instan dalam format `.xls` rapi yang siap dibuka di Microsoft Excel.
 
 ### 5. 🛜 Offline Fallback Engine (Robust Client-Side Simulation)
