@@ -1763,6 +1763,26 @@ window.openModal = function(action, id = null) {
                 }
             };
         }
+        
+        if (action === 'addMasuk' || action === 'addKeluar') {
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+            const dateCompact = dateStr.replace(/-/g, '');
+            const rand = Math.floor(1000 + Math.random() * 9000);
+            
+            const tglInput = document.getElementById('tanggalTransaksi');
+            const poInput = document.getElementById('noPO');
+            const refInput = document.getElementById('noReferensi');
+            
+            if (tglInput) tglInput.value = dateStr;
+            
+            if (action === 'addMasuk') {
+                if (poInput) poInput.value = `PO-${dateCompact}-${rand}`;
+                if (refInput) refInput.value = `IN-${dateCompact}-${rand}`;
+            } else if (action === 'addKeluar') {
+                if (refInput) refInput.value = `OUT-${dateCompact}-${rand}`;
+            }
+        }
 
         if (action === 'add') {
             modalTitle.innerText = 'Tambah Data Barang';
