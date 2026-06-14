@@ -1764,25 +1764,7 @@ window.openModal = function(action, id = null) {
             };
         }
         
-        if (action === 'addMasuk' || action === 'addKeluar') {
-            const today = new Date();
-            const dateStr = today.toISOString().split('T')[0];
-            const dateCompact = dateStr.replace(/-/g, '');
-            const rand = Math.floor(1000 + Math.random() * 9000);
-            
-            const tglInput = document.getElementById('tanggalTransaksi');
-            const poInput = document.getElementById('noPO');
-            const refInput = document.getElementById('noReferensi');
-            
-            if (tglInput) tglInput.value = dateStr;
-            
-            if (action === 'addMasuk') {
-                if (poInput) poInput.value = `PO-${dateCompact}-${rand}`;
-                if (refInput) refInput.value = `IN-${dateCompact}-${rand}`;
-            } else if (action === 'addKeluar') {
-                if (refInput) refInput.value = `OUT-${dateCompact}-${rand}`;
-            }
-        }
+
 
         if (action === 'add') {
             modalTitle.innerText = 'Tambah Data Barang';
@@ -1823,6 +1805,14 @@ window.openModal = function(action, id = null) {
             const dateInput = document.getElementById('tanggalTransaksi');
             if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
             
+            // Auto generate ref and po
+            const dateCompact = (dateInput ? dateInput.value : new Date().toISOString().split('T')[0]).replace(/-/g, '');
+            const rand = Math.floor(1000 + Math.random() * 9000);
+            const poInput = document.getElementById('noPO');
+            const refInput = document.getElementById('noReferensi');
+            if (poInput) poInput.value = `PO-${dateCompact}-${rand}`;
+            if (refInput) refInput.value = `IN-${dateCompact}-${rand}`;
+            
             // Populasikan list autocomplete supplier secara dinamis
             const supplierDatalist = document.getElementById('supplierList');
             if (supplierDatalist) {
@@ -1855,6 +1845,12 @@ window.openModal = function(action, id = null) {
             if (form) form.reset();
             const dateInput = document.getElementById('tanggalTransaksi');
             if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+            
+            // Auto generate ref
+            const dateCompact = (dateInput ? dateInput.value : new Date().toISOString().split('T')[0]).replace(/-/g, '');
+            const rand = Math.floor(1000 + Math.random() * 9000);
+            const refInput = document.getElementById('noReferensi');
+            if (refInput) refInput.value = `OUT-${dateCompact}-${rand}`;
         } else if (action === 'tambahAkun') {
             modalTitle.innerText = 'Tambah Pengguna Baru';
             if (form) {
