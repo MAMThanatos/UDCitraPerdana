@@ -335,33 +335,40 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             // Fungsi pembantu untuk memproses mock login jika API gagal
             const tryMockLogin = () => {
-                if ((usernameInput === 'admin' && passwordInput === 'admin123') || 
+                const userList = DB.get('ud_users', []);
+                const user = userList.find(u => u.username === usernameInput && 
+                    (u.password === passwordInput || (!u.password && ((u.username === 'admin' && passwordInput === 'admin123') || (u.username === 'budi_gudang' && passwordInput === 'budi123'))))
+                );
+
+                if (user) {
+                    const mockSession = {
+                        id_user: user.id,
+                        username: user.username,
+                        nama_lengkap: user.nama || user.nama_lengkap,
+                        role: user.role,
+                        isMock: true
+                    };
+                    localStorage.setItem('ud_session', JSON.stringify(mockSession));
+                    showToast('Login berhasil! (Mode Offline)', 'success');
+                    setTimeout(() => {
+                        window.location.href = mockSession.role === 'Staf Gudang' ? BASE_URL + '/views/barang/data_barang.html' : BASE_URL + '/index.html';
+                    }, 1000);
+                    return true;
+                } else if ((usernameInput === 'admin' && passwordInput === 'admin123') || 
                     (usernameInput === 'budi_gudang' && passwordInput === 'budi123')) {
-                    
-                    let nama = 'Administrator Super';
-                    let role = 'Admin / Owner';
-                    if (usernameInput === 'budi_gudang') {
-                        nama = 'Budi Santoso';
-                        role = 'Staf Gudang';
-                    }
-                    
+                    // Fallback
+                    const role = usernameInput === 'budi_gudang' ? 'Staf Gudang' : 'Admin / Owner';
                     const mockSession = {
                         id_user: usernameInput === 'admin' ? 1 : 2,
                         username: usernameInput,
-                        nama_lengkap: nama,
+                        nama_lengkap: usernameInput === 'admin' ? 'Administrator Super' : 'Budi Santoso',
                         role: role,
                         isMock: true
                     };
-                    
                     localStorage.setItem('ud_session', JSON.stringify(mockSession));
                     showToast('Login berhasil! (Mode Simulasi Offline)', 'success');
-                    
                     setTimeout(() => {
-                        if (role === 'Staf Gudang') {
-                            window.location.href = BASE_URL + '/views/barang/data_barang.html';
-                        } else {
-                            window.location.href = BASE_URL + '/index.html';
-                        }
+                        window.location.href = role === 'Staf Gudang' ? BASE_URL + '/views/barang/data_barang.html' : BASE_URL + '/index.html';
                     }, 1000);
                     return true;
                 }
@@ -1652,6 +1659,9 @@ window.simpanAkun = function(btn) {
                 userList[index].nama = nama;
                 userList[index].username = username;
                 userList[index].role = role;
+                if (password !== '') {
+                    userList[index].password = password;
+                }
                 DB.set('ud_users', userList);
                 showToast('Pengguna berhasil diperbarui secara lokal! (Offline)', 'success');
             }
@@ -1667,8 +1677,10 @@ window.simpanAkun = function(btn) {
                 id: userList.length > 0 ? Math.max(...userList.map(u => u.id)) + 1 : 1,
                 nama: nama,
                 username: username,
-                role: role
+                role: role,
+                password: password
             });
+
             DB.set('ud_users', userList);
             showToast('Pengguna baru berhasil ditambahkan secara lokal! (Offline)', 'success');
         }
