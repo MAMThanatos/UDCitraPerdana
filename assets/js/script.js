@@ -336,27 +336,31 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Fungsi pembantu untuk memproses mock login jika API gagal
             const tryMockLogin = () => {
                 const userList = DB.get('ud_users', []);
-                const user = userList.find(u => u.username === usernameInput && 
-                    (u.password === passwordInput || (!u.password && ((u.username === 'admin' && passwordInput === 'admin123') || (u.username === 'budi_gudang' && passwordInput === 'budi123'))))
-                );
-
-                if (user) {
-                    const mockSession = {
-                        id_user: user.id,
-                        username: user.username,
-                        nama_lengkap: user.nama || user.nama_lengkap,
-                        role: user.role,
-                        isMock: true
-                    };
-                    localStorage.setItem('ud_session', JSON.stringify(mockSession));
-                    showToast('Login berhasil! (Mode Offline)', 'success');
-                    setTimeout(() => {
-                        window.location.href = mockSession.role === 'Staf Gudang' ? BASE_URL + '/views/barang/data_barang.html' : BASE_URL + '/index.html';
-                    }, 1000);
-                    return true;
+                const userInDb = userList.find(u => u.username === usernameInput);
+                
+                if (userInDb) {
+                    // Jika user ada di database lokal, wajib cocokkan passwordnya
+                    // Jika belum pernah diset passwordnya, fallback ke default budi123/admin123
+                    const isDefaultPassword = (!userInDb.password && ((userInDb.username === 'admin' && passwordInput === 'admin123') || (userInDb.username === 'budi_gudang' && passwordInput === 'budi123')));
+                    
+                    if (userInDb.password === passwordInput || isDefaultPassword) {
+                        const mockSession = {
+                            id_user: userInDb.id,
+                            username: userInDb.username,
+                            nama_lengkap: userInDb.nama || userInDb.nama_lengkap,
+                            role: userInDb.role,
+                            isMock: true
+                        };
+                        localStorage.setItem('ud_session', JSON.stringify(mockSession));
+                        showToast('Login berhasil! (Mode Offline)', 'success');
+                        setTimeout(() => {
+                            window.location.href = mockSession.role === 'Staf Gudang' ? BASE_URL + '/views/barang/data_barang.html' : BASE_URL + '/index.html';
+                        }, 1000);
+                        return true;
+                    }
                 } else if ((usernameInput === 'admin' && passwordInput === 'admin123') || 
                     (usernameInput === 'budi_gudang' && passwordInput === 'budi123')) {
-                    // Fallback
+                    // Fallback HANYA jika database lokal belum diinisialisasi
                     const role = usernameInput === 'budi_gudang' ? 'Staf Gudang' : 'Admin / Owner';
                     const mockSession = {
                         id_user: usernameInput === 'admin' ? 1 : 2,
@@ -372,6 +376,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                     }, 1000);
                     return true;
                 }
+                
+                showToast('Username atau password salah!', 'error');
                 return false;
             };
 
