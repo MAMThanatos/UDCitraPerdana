@@ -187,7 +187,13 @@ const syncDatabase = async () => {
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.status === 'success') {
-                        DB.set('ud_users', data.data);
+                        const localUsers = DB.get('ud_users', []);
+                        const mergedUsers = data.data.map(apiUser => {
+                            const lUser = localUsers.find(u => u.username === apiUser.username);
+                            if (lUser && lUser.password) apiUser.password = lUser.password;
+                            return apiUser;
+                        });
+                        DB.set('ud_users', mergedUsers);
                     }
                 }).catch(e => console.warn("Gagal sinkronisasi manajemen akun:", e))
         );
@@ -369,20 +375,19 @@ document.addEventListener('DOMContentLoaded', async function () {
                     }
                 } else if (userList.length === 0) {
                     // Fallback HANYA jika database lokal benar-benar kosong (belum pernah sinkron)
-                    if ((usernameInput === 'admin' && passwordInput === 'admin123') || 
-                        (usernameInput === 'budi_gudang' && passwordInput === 'budi123')) {
-                        const role = usernameInput === 'budi_gudang' ? 'Staf Gudang' : 'Admin / Owner';
+                    // Hanya izinkan admin login untuk setup pertama kali
+                    if (usernameInput === 'admin' && passwordInput === 'admin123') {
                         const mockSession = {
-                            id_user: usernameInput === 'admin' ? 1 : 2,
-                            username: usernameInput,
-                            nama_lengkap: usernameInput === 'admin' ? 'Administrator Super' : 'Budi Santoso',
-                            role: role,
+                            id_user: 1,
+                            username: 'admin',
+                            nama_lengkap: 'Administrator Super',
+                            role: 'Admin / Owner',
                             isMock: true
                         };
                         localStorage.setItem('ud_session', JSON.stringify(mockSession));
                         showToast('Login berhasil! (Mode Simulasi Offline)', 'success');
                         setTimeout(() => {
-                            window.location.href = role === 'Staf Gudang' ? BASE_URL + '/views/barang/data_barang.html' : BASE_URL + '/index.html';
+                            window.location.href = BASE_URL + '/index.html';
                         }, 1000);
                         return true;
                     }
@@ -448,7 +453,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 if (tryMockLogin()) {
                     return;
                 } else {
-                    showToast('Username atau password salah! (Gunakan admin / admin123)', 'error');
+                    // tryMockLogin sudah memunculkan toast error
                     btn.innerHTML = originalText;
                     btn.style.opacity = '1';
                     btn.disabled = false;
@@ -817,8 +822,14 @@ document.addEventListener('DOMContentLoaded', async function () {
             const response = await fetch(BASE_URL + '/api/user/read.php', { credentials: 'same-origin' });
             const data = await response.json();
             if (data.status === 'success') {
-                userList = data.data;
+                const localUsers = DB.get('ud_users', []);
+                userList = data.data.map(apiUser => {
+                    const lUser = localUsers.find(u => u.username === apiUser.username);
+                    if (lUser && lUser.password) apiUser.password = lUser.password;
+                    return apiUser;
+                });
                 DB.set('ud_users', userList); // sync local cache
+
             } else {
                 isOffline = true;
             }
