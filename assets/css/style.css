@@ -1172,6 +1172,10 @@ body {
    PRINT STYLES FOR REPORTS
    ========================================= */
 @media print {
+    @page {
+        size: landscape;
+        margin: 1.5cm;
+    }
     .sidebar, .topbar, .btn, .search-box, .table-header-actions {
         display: none !important;
     }
@@ -1190,6 +1194,14 @@ body {
     .table-container {
         box-shadow: none !important;
         border: none !important;
+        overflow: visible !important;
+    }
+    .data-table {
+        width: 100% !important;
+    }
+    .data-table th, .data-table td {
+        padding: 10px 12px !important;
+        font-size: 12px !important;
     }
     .data-table th {
         background-color: #f1f5f9 !important;
