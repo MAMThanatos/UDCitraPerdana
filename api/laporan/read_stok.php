@@ -21,17 +21,8 @@ try {
     
     if (!empty($monthFilter) && preg_match('/^\d{4}-\d{2}$/', $monthFilter)) {
         $escaped_month = $conn->real_escape_string($monthFilter);
-        // Tampilkan HANYA barang yang memiliki transaksi masuk atau keluar pada bulan terpilih
-        $sql_barang .= " WHERE (b.id_barang IN (
-                            SELECT id_barang FROM detailmasuk dm 
-                            JOIN transaksimasuk tm ON dm.id_masuk = tm.id_masuk 
-                            WHERE DATE_FORMAT(tm.tgl_masuk, '%Y-%m') = '$escaped_month'
-                         )
-                         OR b.id_barang IN (
-                            SELECT id_barang FROM detailkeluar dk 
-                            JOIN transaksikeluar tk ON dk.id_keluar = tk.id_keluar 
-                            WHERE DATE_FORMAT(tk.tgl_keluar, '%Y-%m') = '$escaped_month'
-                         ))";
+        // Tampilkan semua barang yang sudah terdaftar pada atau sebelum bulan terpilih
+        $sql_barang .= " WHERE DATE_FORMAT(b.created_at, '%Y-%m') <= '$escaped_month'";
     }
     
     $sql_barang .= " ORDER BY b.kode_barang ASC";
@@ -54,103 +45,110 @@ try {
                 $start_date = $monthFilter . '-01';
                 $end_date = date('Y-m-t', strtotime($start_date)); // t = last day of the month
                 
-                // A. Hitung total masuk selama bulan terpilih
+                // 1. Hitung transaksi pada bulan terpilih
+                // A. Masuk Supplier
                 $stmt_masuk_curr = $conn->prepare("SELECT SUM(dm.jumlah) AS qty 
                                                    FROM detailmasuk dm 
                                                    JOIN transaksimasuk tm ON dm.id_masuk = tm.id_masuk 
                                                    WHERE dm.id_barang = ? AND tm.tgl_masuk BETWEEN ? AND ?");
                 $stmt_masuk_curr->bind_param("iss", $id_barang, $start_date, $end_date);
                 $stmt_masuk_curr->execute();
-                $res_masuk_curr = $stmt_masuk_curr->get_result()->fetch_assoc();
-                $masuk_qty = (int)($res_masuk_curr['qty'] ?? 0);
+                $masuk_supplier = (int)($stmt_masuk_curr->get_result()->fetch_assoc()['qty'] ?? 0);
                 $stmt_masuk_curr->close();
                 
-                // B. Hitung total keluar selama bulan terpilih
+                // B. Keluar Sales
                 $stmt_keluar_curr = $conn->prepare("SELECT SUM(dk.jumlah) AS qty 
                                                     FROM detailkeluar dk 
                                                     JOIN transaksikeluar tk ON dk.id_keluar = tk.id_keluar 
                                                     WHERE dk.id_barang = ? AND tk.tgl_keluar BETWEEN ? AND ?");
                 $stmt_keluar_curr->bind_param("iss", $id_barang, $start_date, $end_date);
                 $stmt_keluar_curr->execute();
-                $res_keluar_curr = $stmt_keluar_curr->get_result()->fetch_assoc();
-                $keluar_qty = (int)($res_keluar_curr['qty'] ?? 0);
+                $keluar_sales = (int)($stmt_keluar_curr->get_result()->fetch_assoc()['qty'] ?? 0);
                 $stmt_keluar_curr->close();
 
-                // B.2 Hitung total penyesuaian opname selama bulan terpilih
-                $stmt_opname_curr = $conn->prepare("SELECT SUM(do.selisih) AS qty 
+                // C. Opname (Positif & Negatif)
+                $stmt_opname_curr = $conn->prepare("SELECT 
+                                                        SUM(CASE WHEN do.selisih > 0 THEN do.selisih ELSE 0 END) AS pos,
+                                                        SUM(CASE WHEN do.selisih < 0 THEN -do.selisih ELSE 0 END) AS neg 
                                                     FROM detailopname do 
                                                     JOIN opname o ON do.id_opname = o.id_opname 
                                                     WHERE do.id_barang = ? AND o.tgl_opname BETWEEN ? AND ?");
                 $stmt_opname_curr->bind_param("iss", $id_barang, $start_date, $end_date);
                 $stmt_opname_curr->execute();
                 $res_opname_curr = $stmt_opname_curr->get_result()->fetch_assoc();
-                $opname_qty = (int)($res_opname_curr['qty'] ?? 0);
+                $opname_pos_curr = (int)($res_opname_curr['pos'] ?? 0);
+                $opname_neg_curr = (int)($res_opname_curr['neg'] ?? 0);
                 $stmt_opname_curr->close();
 
-                // B.3 Hitung total penyesuaian mutasi selama bulan terpilih
-                $stmt_mutasi_curr = $conn->prepare("SELECT SUM(CASE 
-                                                        WHEN (gudang_asal LIKE '%cabang%' AND gudang_tujuan NOT LIKE '%cabang%') THEN jumlah
-                                                        WHEN (gudang_asal NOT LIKE '%cabang%' AND gudang_tujuan LIKE '%cabang%') THEN -jumlah
-                                                        ELSE 0 
-                                                    END) AS net_qty 
+                // D. Mutasi (Inbound & Outbound)
+                $stmt_mutasi_curr = $conn->prepare("SELECT 
+                                                        SUM(CASE WHEN (gudang_asal LIKE '%cabang%' AND gudang_tujuan NOT LIKE '%cabang%') THEN jumlah ELSE 0 END) AS inbound,
+                                                        SUM(CASE WHEN (gudang_asal NOT LIKE '%cabang%' AND gudang_tujuan LIKE '%cabang%') THEN jumlah ELSE 0 END) AS outbound 
                                                     FROM mutasi 
                                                     WHERE id_barang = ? AND tgl_mutasi BETWEEN ? AND ?");
                 $stmt_mutasi_curr->bind_param("iss", $id_barang, $start_date, $end_date);
                 $stmt_mutasi_curr->execute();
                 $res_mutasi_curr = $stmt_mutasi_curr->get_result()->fetch_assoc();
-                $mutasi_qty = (int)($res_mutasi_curr['net_qty'] ?? 0);
+                $mutasi_in_curr = (int)($res_mutasi_curr['inbound'] ?? 0);
+                $mutasi_out_curr = (int)($res_mutasi_curr['outbound'] ?? 0);
                 $stmt_mutasi_curr->close();
                 
-                // C. Hitung total masuk SETELAH bulan terpilih (untuk menghitung stok akhir di akhir bulan terpilih)
+                $masuk_qty = $masuk_supplier + $opname_pos_curr + $mutasi_in_curr;
+                $keluar_qty = $keluar_sales + $opname_neg_curr + $mutasi_out_curr;
+
+                // 2. Hitung transaksi SETELAH bulan terpilih (untuk hitung stok akhir)
+                // A. Masuk Supplier setelah
                 $stmt_masuk_after = $conn->prepare("SELECT SUM(dm.jumlah) AS qty 
                                                     FROM detailmasuk dm 
                                                     JOIN transaksimasuk tm ON dm.id_masuk = tm.id_masuk 
                                                     WHERE dm.id_barang = ? AND tm.tgl_masuk > ?");
                 $stmt_masuk_after->bind_param("is", $id_barang, $end_date);
                 $stmt_masuk_after->execute();
-                $res_masuk_after = $stmt_masuk_after->get_result()->fetch_assoc();
-                $masuk_after = (int)($res_masuk_after['qty'] ?? 0);
+                $masuk_supplier_after = (int)($stmt_masuk_after->get_result()->fetch_assoc()['qty'] ?? 0);
                 $stmt_masuk_after->close();
                 
-                // D. Hitung total keluar SETELAH bulan terpilih
+                // B. Keluar Sales setelah
                 $stmt_keluar_after = $conn->prepare("SELECT SUM(dk.jumlah) AS qty 
                                                      FROM detailkeluar dk 
                                                      JOIN transaksikeluar tk ON dk.id_keluar = tk.id_keluar 
                                                      WHERE dk.id_barang = ? AND tk.tgl_keluar > ?");
                 $stmt_keluar_after->bind_param("is", $id_barang, $end_date);
                 $stmt_keluar_after->execute();
-                $res_keluar_after = $stmt_keluar_after->get_result()->fetch_assoc();
-                $keluar_after = (int)($res_keluar_after['qty'] ?? 0);
+                $keluar_sales_after = (int)($stmt_keluar_after->get_result()->fetch_assoc()['qty'] ?? 0);
                 $stmt_keluar_after->close();
 
-                // D.2 Hitung total penyesuaian opname SETELAH bulan terpilih
-                $stmt_opname_after = $conn->prepare("SELECT SUM(do.selisih) AS qty 
+                // C. Opname setelah
+                $stmt_opname_after = $conn->prepare("SELECT 
+                                                         SUM(CASE WHEN do.selisih > 0 THEN do.selisih ELSE 0 END) AS pos,
+                                                         SUM(CASE WHEN do.selisih < 0 THEN -do.selisih ELSE 0 END) AS neg 
                                                      FROM detailopname do 
                                                      JOIN opname o ON do.id_opname = o.id_opname 
                                                      WHERE do.id_barang = ? AND o.tgl_opname > ?");
                 $stmt_opname_after->bind_param("is", $id_barang, $end_date);
                 $stmt_opname_after->execute();
                 $res_opname_after = $stmt_opname_after->get_result()->fetch_assoc();
-                $opname_after = (int)($res_opname_after['qty'] ?? 0);
+                $opname_pos_after = (int)($res_opname_after['pos'] ?? 0);
+                $opname_neg_after = (int)($res_opname_after['neg'] ?? 0);
                 $stmt_opname_after->close();
 
-                // D.3 Hitung total penyesuaian mutasi SETELAH bulan terpilih
-                $stmt_mutasi_after = $conn->prepare("SELECT SUM(CASE 
-                                                         WHEN (gudang_asal LIKE '%cabang%' AND gudang_tujuan NOT LIKE '%cabang%') THEN jumlah
-                                                         WHEN (gudang_asal NOT LIKE '%cabang%' AND gudang_tujuan LIKE '%cabang%') THEN -jumlah
-                                                         ELSE 0 
-                                                     END) AS net_qty 
+                // D. Mutasi setelah
+                $stmt_mutasi_after = $conn->prepare("SELECT 
+                                                         SUM(CASE WHEN (gudang_asal LIKE '%cabang%' AND gudang_tujuan NOT LIKE '%cabang%') THEN jumlah ELSE 0 END) AS inbound,
+                                                         SUM(CASE WHEN (gudang_asal NOT LIKE '%cabang%' AND gudang_tujuan LIKE '%cabang%') THEN jumlah ELSE 0 END) AS outbound 
                                                      FROM mutasi 
                                                      WHERE id_barang = ? AND tgl_mutasi > ?");
                 $stmt_mutasi_after->bind_param("is", $id_barang, $end_date);
                 $stmt_mutasi_after->execute();
                 $res_mutasi_after = $stmt_mutasi_after->get_result()->fetch_assoc();
-                $mutasi_after = (int)($res_mutasi_after['net_qty'] ?? 0);
+                $mutasi_in_after = (int)($res_mutasi_after['inbound'] ?? 0);
+                $mutasi_out_after = (int)($res_mutasi_after['outbound'] ?? 0);
                 $stmt_mutasi_after->close();
                 
-                // E. Kalkulasi akhir & awal
-                $akhir = $stok_sekarang - $masuk_after + $keluar_after - $opname_after - $mutasi_after;
-                $awal = $akhir - $masuk_qty + $keluar_qty - $opname_qty - $mutasi_qty;
+                $masuk_after_total = $masuk_supplier_after + $opname_pos_after + $mutasi_in_after;
+                $keluar_after_total = $keluar_sales_after + $opname_neg_after + $mutasi_out_after;
+
+                $akhir = $stok_sekarang - $masuk_after_total + $keluar_after_total;
+                $awal = $akhir - $masuk_qty + $keluar_qty;
             }
         } else {
             // Jika filter bulan kosong, tampilkan mutasi akumulatif sepanjang masa
@@ -158,40 +156,47 @@ try {
             $stmt_masuk_all = $conn->prepare("SELECT SUM(jumlah) AS qty FROM detailmasuk WHERE id_barang = ?");
             $stmt_masuk_all->bind_param("i", $id_barang);
             $stmt_masuk_all->execute();
-            $masuk_qty = (int)($stmt_masuk_all->get_result()->fetch_assoc()['qty'] ?? 0);
+            $masuk_supplier_all = (int)($stmt_masuk_all->get_result()->fetch_assoc()['qty'] ?? 0);
             $stmt_masuk_all->close();
             
             // B. Hitung total keluar sepanjang masa
             $stmt_keluar_all = $conn->prepare("SELECT SUM(jumlah) AS qty FROM detailkeluar WHERE id_barang = ?");
             $stmt_keluar_all->bind_param("i", $id_barang);
             $stmt_keluar_all->execute();
-            $keluar_qty = (int)($stmt_keluar_all->get_result()->fetch_assoc()['qty'] ?? 0);
+            $keluar_sales_all = (int)($stmt_keluar_all->get_result()->fetch_assoc()['qty'] ?? 0);
             $stmt_keluar_all->close();
 
-            // B.2 Hitung total penyesuaian opname sepanjang masa
-            $stmt_opname_all = $conn->prepare("SELECT SUM(do.selisih) AS qty FROM detailopname do WHERE do.id_barang = ?");
+            // C. Hitung total penyesuaian opname sepanjang masa
+            $stmt_opname_all = $conn->prepare("SELECT 
+                                                   SUM(CASE WHEN selisih > 0 THEN selisih ELSE 0 END) AS pos,
+                                                   SUM(CASE WHEN selisih < 0 THEN -selisih ELSE 0 END) AS neg 
+                                               FROM detailopname 
+                                               WHERE id_barang = ?");
             $stmt_opname_all->bind_param("i", $id_barang);
             $stmt_opname_all->execute();
-            $opname_qty = (int)($stmt_opname_all->get_result()->fetch_assoc()['qty'] ?? 0);
+            $res_opname_all = $stmt_opname_all->get_result()->fetch_assoc();
+            $opname_pos_all = (int)($res_opname_all['pos'] ?? 0);
+            $opname_neg_all = (int)($res_opname_all['neg'] ?? 0);
             $stmt_opname_all->close();
 
-            // B.3 Hitung total penyesuaian mutasi sepanjang masa
-            $stmt_mutasi_all = $conn->prepare("SELECT SUM(CASE 
-                                                    WHEN (gudang_asal LIKE '%cabang%' AND gudang_tujuan NOT LIKE '%cabang%') THEN jumlah
-                                                    WHEN (gudang_asal NOT LIKE '%cabang%' AND gudang_tujuan LIKE '%cabang%') THEN -jumlah
-                                                    ELSE 0 
-                                                END) AS net_qty 
+            // D. Hitung total penyesuaian mutasi sepanjang masa
+            $stmt_mutasi_all = $conn->prepare("SELECT 
+                                                    SUM(CASE WHEN (gudang_asal LIKE '%cabang%' AND gudang_tujuan NOT LIKE '%cabang%') THEN jumlah ELSE 0 END) AS inbound,
+                                                    SUM(CASE WHEN (gudang_asal NOT LIKE '%cabang%' AND gudang_tujuan LIKE '%cabang%') THEN jumlah ELSE 0 END) AS outbound 
                                                 FROM mutasi 
                                                 WHERE id_barang = ?");
             $stmt_mutasi_all->bind_param("i", $id_barang);
             $stmt_mutasi_all->execute();
             $res_mutasi_all = $stmt_mutasi_all->get_result()->fetch_assoc();
-            $mutasi_qty = (int)($res_mutasi_all['net_qty'] ?? 0);
+            $mutasi_in_all = (int)($res_mutasi_all['inbound'] ?? 0);
+            $mutasi_out_all = (int)($res_mutasi_all['outbound'] ?? 0);
             $stmt_mutasi_all->close();
             
-            // C. Kalkulasi
+            $masuk_qty = $masuk_supplier_all + $opname_pos_all + $mutasi_in_all;
+            $keluar_qty = $keluar_sales_all + $opname_neg_all + $mutasi_out_all;
+
             $akhir = $stok_sekarang;
-            $awal = $akhir - $masuk_qty + $keluar_qty - $opname_qty - $mutasi_qty;
+            $awal = $akhir - $masuk_qty + $keluar_qty;
         }
         
         $report_data[] = [

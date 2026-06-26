@@ -704,10 +704,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                 
                 let matchesMonth = true;
                 if (monthFilter !== '') {
-                    const hasTransactionInMonth = 
-                        masukList.some(t => t.barang === item.nama_barang && t.tanggal.slice(0, 7) === monthFilter) ||
-                        keluarList.some(t => t.barang === item.nama_barang && t.tanggal.slice(0, 7) === monthFilter);
-                    matchesMonth = hasTransactionInMonth;
+                    const itemCreated = item.created_at || '';
+                    if (itemCreated) {
+                        matchesMonth = itemCreated.slice(0, 7) <= monthFilter;
+                    }
                 }
                 
                 return matchesSearch && matchesCategory && matchesMonth;
