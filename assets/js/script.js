@@ -593,7 +593,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
         
         if (filtered.length === 0) {
-            masukTableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px 20px;"><div style="color: var(--border-color); margin-bottom: 15px;"><i class="fas fa-arrow-down fa-3x" style="opacity: 0.5;"></i></div><div style="color: var(--text-muted); font-size: 14px;">Data transaksi masuk tidak ditemukan.</div></td></tr>';
+            masukTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px 20px;"><div style="color: var(--border-color); margin-bottom: 15px;"><i class="fas fa-arrow-down fa-3x" style="opacity: 0.5;"></i></div><div style="color: var(--text-muted); font-size: 14px;">Data transaksi masuk tidak ditemukan.</div></td></tr>';
             return;
         }
         
@@ -606,7 +606,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 <td>${item.supplier}</td>
                 <td>${item.barang}</td>
                 <td><span class="badge" style="background-color: #d1fae5; color: #059669; font-weight: 600;">+ ${item.qty}</span></td>
-                <td><span class="badge ${item.qc && item.qc.includes('Baik') ? 'badge-success' : (item.qc && item.qc.includes('Rusak') ? 'badge-danger' : 'badge-warning')}">${item.qc || 'Baik (Lolos QC)'}</span></td>
                 <td>
                     <button class="btn-icon" style="color: #6366f1; background: rgba(99, 102, 241, 0.1);" onclick="showDetailMasuk(${item.id_masuk})" title="Detail"><i class="fas fa-eye"></i></button>
                     <button class="btn-icon btn-delete" onclick="deleteTransaksiMasuk(${item.id_masuk})" title="Hapus Data"><i class="fas fa-trash"></i></button>
@@ -871,136 +870,99 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     };
 
-    window.renderDashboard = function() {
+    window.renderDashboard = async function() {
         const cards = document.querySelector('.dashboard-cards');
         if (!cards) return;
         
-        const barangList = DB.get('ud_barang', []);
-        const masukList = DB.get('ud_transaksi_masuk', []);
-        const keluarList = DB.get('ud_transaksi_keluar', []);
-        
-        const totalBarangCount = barangList.length;
-        const totalMasukQty = masukList.reduce((sum, t) => sum + Number(t.qty || 0), 0);
-        const totalKeluarQty = keluarList.reduce((sum, t) => sum + Number(t.qty || 0), 0);
-        
-        const stokMenipisList = barangList.filter(item => {
-            const minStock = (item.stok_minimum !== undefined && item.stok_minimum !== null && item.stok_minimum !== '') ? Number(item.stok_minimum) : 10;
-            return Number(item.stok || 0) <= minStock;
-        });
-        const stokMenipisCount = stokMenipisList.length;
-        
-        const cardElements = cards.querySelectorAll('.card');
-        if (cardElements.length >= 4) {
-            cardElements[0].querySelector('.card-info h3').textContent = totalBarangCount;
-            cardElements[1].querySelector('.card-info h3').textContent = totalMasukQty;
-            cardElements[2].querySelector('.card-info h3').textContent = totalKeluarQty;
-            cardElements[3].querySelector('.card-info h3').textContent = stokMenipisCount;
-        }
-        
-        const monitoringCards = document.querySelectorAll('.monitoring-card');
-        if (monitoringCards.length >= 3) {
-            const kritisCard = monitoringCards[0];
-            kritisCard.querySelector('.monitoring-header .badge-danger').textContent = stokMenipisCount;
-            const kritisListContainer = kritisCard.querySelector('.monitoring-list');
-            kritisListContainer.innerHTML = '';
-            if (stokMenipisCount === 0) {
-                kritisListContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 14px; padding: 10px 0;">Aman! Tidak ada stok kritis.</div>';
-            } else {
-                stokMenipisList.forEach(item => {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'product-item';
-                    const reorderQty = Number(item.stok_minimum || 10) * 2;
-                    itemDiv.innerHTML = `
-                        <span class="product-name">${item.nama_barang}</span>
-                        <span class="product-stock" style="color: #e11d48; font-weight: 600; text-align: right;">
-                            Stok: ${item.stok} ${item.satuan}
-                            <span style="font-size: 11px; font-weight: normal; color: var(--text-muted); display: block; margin-top: 2px;">
-                                (Rekomendasi Pesan: +${reorderQty} ${item.satuan})
-                            </span>
-                        </span>
-                    `;
-                    kritisListContainer.appendChild(itemDiv);
-                });
-            }
+        try {
+            const response = await fetch(BASE_URL + '/api/dashboard/read.php', { credentials: 'same-origin' });
+            const result = await response.json();
             
-            const populerCard = monitoringCards[1];
-            const itemKeluarTotals = {};
-            barangList.forEach(b => { itemKeluarTotals[b.nama_barang] = 0; });
-            keluarList.forEach(t => {
-                if (itemKeluarTotals[t.barang] !== undefined) {
-                    itemKeluarTotals[t.barang] += Number(t.qty || 0);
-                }
-            });
-            
-            const sortedPopuler = barangList
-                .map(item => ({
-                    ...item,
-                    totalOut: itemKeluarTotals[item.nama_barang] || 0
-                }))
-                .filter(item => item.totalOut > 0)
-                .sort((a, b) => b.totalOut - a.totalOut);
+            if (result.status === 'success') {
+                const data = result.data;
                 
-            populerCard.querySelector('.monitoring-header .badge-info').textContent = sortedPopuler.length;
-            const populerListContainer = populerCard.querySelector('.monitoring-list');
-            populerListContainer.innerHTML = '';
-            if (sortedPopuler.length === 0) {
-                populerListContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 14px; padding: 10px 0;">Belum ada produk populer (belum ada penjualan).</div>';
-            } else {
-                sortedPopuler.slice(0, 3).forEach(item => {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'product-item';
-                    itemDiv.innerHTML = `
-                        <span class="product-name">${item.nama_barang}</span>
-                        <span class="product-stock" style="color: #059669; font-weight: 600;">Terjual: ${item.totalOut} ${item.satuan}</span>
-                    `;
-                    populerListContainer.appendChild(itemDiv);
-                });
+                // 1. Update Cards
+                const cardElements = cards.querySelectorAll('.card');
+                if (cardElements.length >= 4) {
+                    cardElements[0].querySelector('.card-info h3').textContent = data.totalBarangCount;
+                    cardElements[1].querySelector('.card-info h3').textContent = data.totalMasukQty;
+                    cardElements[2].querySelector('.card-info h3').textContent = data.totalKeluarQty;
+                    cardElements[3].querySelector('.card-info h3').textContent = data.stokMenipisCount;
+                }
+                
+                // 2. Monitoring Cards
+                const monitoringCards = document.querySelectorAll('.monitoring-card');
+                if (monitoringCards.length >= 3) {
+                    // Stok Menipis
+                    const kritisCard = monitoringCards[0];
+                    kritisCard.querySelector('.monitoring-header .badge-danger').textContent = data.stokMenipisCount;
+                    const kritisListContainer = kritisCard.querySelector('.monitoring-list');
+                    kritisListContainer.innerHTML = '';
+                    if (data.stokMenipisCount === 0) {
+                        kritisListContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 14px; padding: 10px 0;">Aman! Tidak ada stok kritis.</div>';
+                    } else {
+                        data.stokMenipisList.forEach(item => {
+                            const itemDiv = document.createElement('div');
+                            itemDiv.className = 'product-item';
+                            const reorderQty = item.stok_minimum * 2;
+                            itemDiv.innerHTML = `
+                                <span class="product-name">${item.nama_barang}</span>
+                                <span class="product-stock" style="color: #e11d48; font-weight: 600; text-align: right;">
+                                    Stok: ${item.stok} ${item.satuan}
+                                    <span style="font-size: 11px; font-weight: normal; color: var(--text-muted); display: block; margin-top: 2px;">
+                                        (Rekomendasi Pesan: +${reorderQty} ${item.satuan})
+                                    </span>
+                                </span>
+                            `;
+                            kritisListContainer.appendChild(itemDiv);
+                        });
+                    }
+                    
+                    // Produk Populer
+                    const populerCard = monitoringCards[1];
+                    populerCard.querySelector('.monitoring-header .badge-info').textContent = data.populerList.length;
+                    const populerListContainer = populerCard.querySelector('.monitoring-list');
+                    populerListContainer.innerHTML = '';
+                    if (data.populerList.length === 0) {
+                        populerListContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 14px; padding: 10px 0;">Belum ada produk populer (belum ada penjualan).</div>';
+                    } else {
+                        data.populerList.forEach(item => {
+                            const itemDiv = document.createElement('div');
+                            itemDiv.className = 'product-item';
+                            itemDiv.innerHTML = `
+                                <span class="product-name">${item.nama_barang}</span>
+                                <span class="product-stock" style="color: #059669; font-weight: 600;">Terjual: ${item.totalOut} ${item.satuan}</span>
+                            `;
+                            populerListContainer.appendChild(itemDiv);
+                        });
+                    }
+                    
+                    // Aktivitas Terbaru
+                    const aktivitasCard = monitoringCards[2];
+                    aktivitasCard.querySelector('.monitoring-header .badge-success').textContent = data.activities.length;
+                    
+                    const activityListContainer = aktivitasCard.querySelector('.activity-list');
+                    activityListContainer.innerHTML = '';
+                    if (data.activities.length === 0) {
+                        activityListContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 14px; padding: 10px 0;">Belum ada aktivitas transaksi.</div>';
+                    } else {
+                        data.activities.forEach(act => {
+                            const actDiv = document.createElement('div');
+                            actDiv.className = 'activity-item';
+                            actDiv.innerHTML = `
+                                <i class="fas ${act.icon}" style="color:${act.color}; font-size:18px; width:24px; text-align:center;"></i>
+                                <div class="activity-info">
+                                    <span class="activity-text" style="font-weight: 500;">${act.text}</span>
+                                    <span class="activity-time">${act.time}</span>
+                                </div>
+                            `;
+                            activityListContainer.appendChild(actDiv);
+                        });
+                    }
+                }
             }
-            
-            const aktivitasCard = monitoringCards[2];
-            const combinedActivities = [];
-            
-            masukList.forEach(t => {
-                combinedActivities.push({
-                    type: 'masuk',
-                    text: `Penerimaan ${t.qty} ${t.barang} dari ${t.supplier}`,
-                    time: t.tanggal,
-                    icon: 'fa-arrow-down',
-                    color: '#10b981'
-                });
-            });
-            
-            keluarList.forEach(t => {
-                combinedActivities.push({
-                    type: 'keluar',
-                    text: `Pengeluaran ${t.qty} ${t.barang} ke ${t.tujuan}`,
-                    time: t.tanggal,
-                    icon: 'fa-arrow-up',
-                    color: '#ef4444'
-                });
-            });
-            
-            combinedActivities.sort((a, b) => b.time.localeCompare(a.time));
-            aktivitasCard.querySelector('.monitoring-header .badge-success').textContent = combinedActivities.length;
-            
-            const activityListContainer = aktivitasCard.querySelector('.activity-list');
-            activityListContainer.innerHTML = '';
-            if (combinedActivities.length === 0) {
-                activityListContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 14px; padding: 10px 0;">Belum ada aktivitas transaksi.</div>';
-            } else {
-                combinedActivities.slice(0, 3).forEach(act => {
-                    const actDiv = document.createElement('div');
-                    actDiv.className = 'activity-item';
-                    actDiv.innerHTML = `
-                        <i class="fas ${act.icon}" style="color:${act.color}; font-size:18px; width:24px; text-align:center;"></i>
-                        <div class="activity-info">
-                            <span class="activity-text" style="font-weight: 500;">${act.text}</span>
-                            <span class="activity-time">${act.time}</span>
-                        </div>
-                    `;
-                    activityListContainer.appendChild(actDiv);
-                });
-            }
+        } catch (e) {
+            console.warn("Gagal terhubung ke API dashboard:", e);
         }
     };
 
@@ -1431,13 +1393,11 @@ window.saveTransaksi = function() {
         qty = parseInt(inputMasuk.value || 0);
         const po = document.getElementById('noPO').value.trim();
         const supplier = document.getElementById('supplier').value.trim();
-        const qc = document.getElementById('kondisiQC').value;
         const keterangan = document.getElementById('keterangan').value.trim();
 
         formData.append('qty', qty);
         formData.append('po', po);
         formData.append('supplier', supplier);
-        formData.append('qc', qc);
         formData.append('keterangan', keterangan);
 
         apiUrl = BASE_URL + '/api/transaksi/masuk.php';
@@ -1496,7 +1456,6 @@ window.saveTransaksi = function() {
         if (isMasuk) {
             const po = document.getElementById('noPO').value.trim();
             const supplier = document.getElementById('supplier').value.trim();
-            const qc = document.getElementById('kondisiQC').value;
             const keterangan = document.getElementById('keterangan').value.trim();
             const masukList = DB.get('ud_transaksi_masuk', []);
             
@@ -1508,7 +1467,6 @@ window.saveTransaksi = function() {
                 supplier: supplier,
                 barang: namaBarang,
                 qty: qty,
-                qc: qc,
                 keterangan: keterangan
             });
             
@@ -3243,7 +3201,6 @@ window.showDetailMasuk = function(id) {
     document.getElementById('detMasukSupplier').textContent = item.supplier || '-';
     document.getElementById('detMasukBarang').textContent = item.barang || '-';
     document.getElementById('detMasukQty').textContent = `${item.qty || 0}`;
-    document.getElementById('detMasukQC').textContent = item.qc || 'Baik (Lolos QC)';
     document.getElementById('detMasukKeterangan').textContent = item.keterangan || '-';
     
     const modal = document.getElementById('detailMasukModal');

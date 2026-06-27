@@ -176,7 +176,6 @@
                                 <th>Supplier</th>
                                 <th>Barang</th>
                                 <th>Jumlah</th>
-                                <th>Kondisi QC</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -245,20 +244,10 @@
                         </div>
                     </div>
                     <div class="form-grid">
-                        <div class="input-group">
+                        <div class="input-group" style="grid-column: span 2;">
                             <label>Jumlah Masuk</label>
                             <div class="input-wrapper">
                                 <input type="number" id="jumlahMasuk" placeholder="0" min="1" required>
-                            </div>
-                        </div>
-                        <div class="input-group">
-                            <label>Kondisi / Kualitas QC</label>
-                            <div class="input-wrapper">
-                                <select id="kondisiQC" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 14px; outline: none; color: var(--text-main); background-color: var(--surface);" required>
-                                    <option value="Baik (Lolos QC)">Baik (Lolos QC)</option>
-                                    <option value="Rusak (Retur)">Rusak (Retur)</option>
-                                    <option value="Perlu Diperiksa">Perlu Diperiksa</option>
-                                </select>
                             </div>
                         </div>
                     </div>
@@ -354,9 +343,6 @@
 
                     <div style="font-weight: 600; color: var(--text-muted);">Jumlah Masuk</div>
                     <div id="detMasukQty" style="font-weight: 600; color: #059669;">-</div>
-
-                    <div style="font-weight: 600; color: var(--text-muted);">Kondisi QC</div>
-                    <div id="detMasukQC">-</div>
 
                     <div style="font-weight: 600; color: var(--text-muted);">Keterangan</div>
                     <div id="detMasukKeterangan">-</div>

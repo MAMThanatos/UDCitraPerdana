@@ -57,7 +57,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 'barang' => $row['nama_barang'],
                 'kode_barang' => $row['kode_barang'],
                 'qty' => (int)$row['jumlah'],
-                'qc' => $row['kondisi_qc'],
                 'keterangan' => $row['keterangan']
             ];
         }
@@ -86,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_POST['_method']) || $_POS
     $supplier_name = trim($_POST['supplier'] ?? '');
     $barang_name = trim($_POST['barang'] ?? ''); // nama barang dari dropdown FE
     $qty = (int)($_POST['qty'] ?? 0);
-    $qc = trim($_POST['qc'] ?? 'Baik (Lolos QC)');
+    $qc = 'Baik (Lolos QC)';
     $keterangan = trim($_POST['keterangan'] ?? '');
 
     // Validasi input
